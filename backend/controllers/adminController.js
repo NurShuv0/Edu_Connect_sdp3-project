@@ -6,6 +6,9 @@ const TuitionPost = require("../models/TuitionPost");
 const TuitionApplication = require("../models/TuitionApplication");
 const DemoSession = require("../models/DemoSession");
 const Notification = require("../models/Notification");
+const Notice = require("../models/Notice");
+const TeacherNID = require("../models/TeacherNID");
+const ParentControl = require("../models/ParentControl");
 const bcrypt = require("bcrypt");
 const logger = require("../config/logger");
 
@@ -463,6 +466,611 @@ const deleteUser = async (req, res) => {
   }
 };
 
+// --------------------------------------------------
+// PROFILE APPROVAL SYSTEM
+// --------------------------------------------------
+
+/**
+ * Get pending profiles for approval
+ */
+const getPendingProfiles = async (req, res) => {
+  try {
+    const role = req.query.role || "teacher"; // teacher or student
+
+    const profiles = await User.find({
+      role: role,
+      isProfileApproved: false,
+      isBanned: false
+    }).select("-password");
+
+    res.status(200).json({
+      success: true,
+      data: profiles,
+      total: profiles.length
+    });
+  } catch (error) {
+    logger.error("Error fetching pending profiles:", error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch pending profiles" });
+  }
+};
+
+/**
+ * Approve user profile
+ */
+const approveUserProfile = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        isProfileApproved: true,
+        approvedBy: req.user.id,
+        approvalDate: new Date()
+      },
+      { new: true }
+    ).select("-password");
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    logger.info(`Profile approved: ${user.email} by admin: ${req.user.email}`);
+
+    res.status(200).json({
+      success: true,
+      message: "Profile approved successfully",
+      data: user
+    });
+  } catch (error) {
+    logger.error("Error approving profile:", error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to approve profile" });
+  }
+};
+
+/**
+ * Reject user profile
+ */
+const rejectUserProfile = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { reason } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    // Keep isProfileApproved as false, store rejection reason
+    user.approvalDate = new Date();
+    user.approvedBy = req.user.id;
+    await user.save();
+
+    logger.info(
+      `Profile rejected: ${user.email} (Reason: ${reason}) by admin: ${req.user.email}`
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Profile rejected",
+      reason: reason
+    });
+  } catch (error) {
+    logger.error("Error rejecting profile:", error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to reject profile" });
+  }
+};
+
+// --------------------------------------------------
+// TUITION POST APPROVAL SYSTEM
+// --------------------------------------------------
+
+/**
+ * Get pending tuition posts
+ */
+const getPendingTuitionPosts = async (req, res) => {
+  try {
+    const posts = await TuitionPost.find({ status: "pending" })
+      .populate("studentId", "name email phone")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: posts,
+      total: posts.length
+    });
+  } catch (error) {
+    logger.error("Error fetching pending posts:", error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch pending posts" });
+  }
+};
+
+/**
+ * Approve tuition post
+ */
+const approveTuitionPost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    const post = await TuitionPost.findByIdAndUpdate(
+      postId,
+      {
+        status: "approved",
+        isApproved: true,
+        approvedBy: req.user.id,
+        approvalDate: new Date()
+      },
+      { new: true }
+    ).populate("studentId", "name email");
+
+    if (!post) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Post not found" });
+    }
+
+    logger.info(`Tuition post approved: ${post._id} by admin: ${req.user.email}`);
+
+    res.status(200).json({
+      success: true,
+      message: "Tuition post approved",
+      data: post
+    });
+  } catch (error) {
+    logger.error("Error approving post:", error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to approve post" });
+  }
+};
+
+/**
+ * Reject tuition post
+ */
+const rejectTuitionPost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { reason } = req.body;
+
+    const post = await TuitionPost.findByIdAndUpdate(
+      postId,
+      {
+        status: "rejected",
+        isApproved: false,
+        rejectionReason: reason
+      },
+      { new: true }
+    ).populate("studentId", "name email");
+
+    if (!post) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Post not found" });
+    }
+
+    logger.info(
+      `Tuition post rejected: ${post._id} (Reason: ${reason}) by admin: ${req.user.email}`
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Tuition post rejected",
+      data: post
+    });
+  } catch (error) {
+    logger.error("Error rejecting post:", error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to reject post" });
+  }
+};
+
+// --------------------------------------------------
+// NID VERIFICATION SYSTEM
+// --------------------------------------------------
+
+/**
+ * Get pending NID verifications
+ */
+const getPendingNIDVerifications = async (req, res) => {
+  try {
+    const nids = await TeacherNID.find({ verificationStatus: "pending" })
+      .populate("teacherId", "name email phone")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: nids,
+      total: nids.length
+    });
+  } catch (error) {
+    logger.error("Error fetching pending NIDs:", error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch pending NIDs" });
+  }
+};
+
+/**
+ * Verify teacher NID
+ */
+const verifyTeacherNID = async (req, res) => {
+  try {
+    const { nidId } = req.params;
+
+    const nid = await TeacherNID.findByIdAndUpdate(
+      nidId,
+      {
+        isVerified: true,
+        verificationStatus: "verified",
+        verifiedBy: req.user.id,
+        verificationDate: new Date()
+      },
+      { new: true }
+    ).populate("teacherId", "name email");
+
+    if (!nid) {
+      return res
+        .status(404)
+        .json({ success: false, message: "NID not found" });
+    }
+
+    logger.info(
+      `NID verified: ${nid.nidNumber} (Teacher: ${nid.teacherId.email}) by admin: ${req.user.email}`
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "NID verified successfully",
+      data: nid
+    });
+  } catch (error) {
+    logger.error("Error verifying NID:", error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to verify NID" });
+  }
+};
+
+/**
+ * Reject NID verification
+ */
+const rejectNIDVerification = async (req, res) => {
+  try {
+    const { nidId } = req.params;
+    const { reason } = req.body;
+
+    const nid = await TeacherNID.findByIdAndUpdate(
+      nidId,
+      {
+        verificationStatus: "rejected",
+        rejectionReason: reason,
+        isVerified: false
+      },
+      { new: true }
+    ).populate("teacherId", "name email");
+
+    if (!nid) {
+      return res
+        .status(404)
+        .json({ success: false, message: "NID not found" });
+    }
+
+    logger.warn(
+      `NID rejected: ${nid.nidNumber} (Reason: ${reason}) by admin: ${req.user.email}`
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "NID rejected",
+      data: nid
+    });
+  } catch (error) {
+    logger.error("Error rejecting NID:", error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to reject NID" });
+  }
+};
+
+// --------------------------------------------------
+// BAN SYSTEM
+// --------------------------------------------------
+
+/**
+ * Ban user
+ */
+const banUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { reason } = req.body;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        isBanned: true,
+        banReason: reason,
+        bannedDate: new Date(),
+        bannedBy: req.user.id
+      },
+      { new: true }
+    ).select("-password");
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    logger.warn(`User banned: ${user.email} (Reason: ${reason}) by admin: ${req.user.email}`);
+
+    res.status(200).json({
+      success: true,
+      message: "User banned successfully",
+      data: user
+    });
+  } catch (error) {
+    logger.error("Error banning user:", error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to ban user" });
+  }
+};
+
+/**
+ * Unban user
+ */
+const unbanUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        isBanned: false,
+        banReason: null,
+        bannedDate: null,
+        bannedBy: null
+      },
+      { new: true }
+    ).select("-password");
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    logger.info(`User unbanned: ${user.email} by admin: ${req.user.email}`);
+
+    res.status(200).json({
+      success: true,
+      message: "User unbanned successfully",
+      data: user
+    });
+  } catch (error) {
+    logger.error("Error unbanning user:", error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to unban user" });
+  }
+};
+
+// --------------------------------------------------
+// NOTICE SYSTEM
+// --------------------------------------------------
+
+/**
+ * Create notice
+ */
+const createNotice = async (req, res) => {
+  try {
+    const { title, content, priority, targetRole, expiresAt } = req.body;
+
+    const notice = new Notice({
+      title,
+      content,
+      priority: priority || "medium",
+      targetRole: targetRole || "all",
+      createdBy: req.user.id,
+      expiresAt: expiresAt ? new Date(expiresAt) : null
+    });
+
+    await notice.save();
+
+    logger.info(`Notice created: ${title} by admin: ${req.user.email}`);
+
+    res.status(201).json({
+      success: true,
+      message: "Notice created successfully",
+      data: notice
+    });
+  } catch (error) {
+    logger.error("Error creating notice:", error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to create notice" });
+  }
+};
+
+/**
+ * Get all active notices
+ */
+const getNotices = async (req, res) => {
+  try {
+    const notices = await Notice.find({ isActive: true })
+      .populate("createdBy", "name")
+      .sort({ priority: -1, createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: notices,
+      total: notices.length
+    });
+  } catch (error) {
+    logger.error("Error fetching notices:", error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch notices" });
+  }
+};
+
+/**
+ * Delete notice
+ */
+const deleteNotice = async (req, res) => {
+  try {
+    const { noticeId } = req.params;
+
+    const notice = await Notice.findByIdAndUpdate(
+      noticeId,
+      { isActive: false },
+      { new: true }
+    );
+
+    if (!notice) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Notice not found" });
+    }
+
+    logger.info(`Notice deleted: ${notice.title} by admin: ${req.user.email}`);
+
+    res.status(200).json({
+      success: true,
+      message: "Notice deleted successfully"
+    });
+  } catch (error) {
+    logger.error("Error deleting notice:", error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to delete notice" });
+  }
+};
+
+// --------------------------------------------------
+// PARENT CONTROL SYSTEM
+// --------------------------------------------------
+
+/**
+ * Get parent controls for a parent
+ */
+const getParentControls = async (req, res) => {
+  try {
+    const { parentId } = req.params;
+
+    const controls = await ParentControl.find({ parentId })
+      .populate("childId", "name email role")
+      .populate("restrictions.blockedTeachers", "name")
+      .populate("restrictions.allowedTeachers", "name");
+
+    res.status(200).json({
+      success: true,
+      data: controls,
+      total: controls.length
+    });
+  } catch (error) {
+    logger.error("Error fetching parent controls:", error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch parent controls" });
+  }
+};
+
+/**
+ * Create parent-child relationship with restrictions
+ */
+const createParentControl = async (req, res) => {
+  try {
+    const { parentId, childId } = req.body;
+
+    // Check if relationship already exists
+    const existing = await ParentControl.findOne({ parentId, childId });
+    if (existing) {
+      return res
+        .status(409)
+        .json({
+          success: false,
+          message: "Parent-child relationship already exists"
+        });
+    }
+
+    const control = new ParentControl({
+      parentId,
+      childId,
+      verifiedBy: req.user.id,
+      isVerified: true,
+      verificationDate: new Date()
+    });
+
+    await control.save();
+
+    logger.info(
+      `Parent control created: ${parentId} → ${childId} by admin: ${req.user.email}`
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Parent-child relationship created",
+      data: control
+    });
+  } catch (error) {
+    logger.error("Error creating parent control:", error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to create parent control" });
+  }
+};
+
+/**
+ * Update parent restrictions
+ */
+const updateParentRestrictions = async (req, res) => {
+  try {
+    const { controlId } = req.params;
+    const restrictions = req.body;
+
+    const control = await ParentControl.findByIdAndUpdate(
+      controlId,
+      { restrictions },
+      { new: true }
+    ).populate("childId", "name email");
+
+    if (!control) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Control not found" });
+    }
+
+    logger.info(
+      `Parent restrictions updated for: ${control.childId.email} by admin: ${req.user.email}`
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Restrictions updated",
+      data: control
+    });
+  } catch (error) {
+    logger.error("Error updating restrictions:", error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to update restrictions" });
+  }
+};
+
 module.exports = {
   getAdminStats,
   getAllUsers,
@@ -479,5 +1087,22 @@ module.exports = {
   suspendUser,
   activateUser,
   getDashboardStats,
-  deleteUser
+  deleteUser,
+  getPendingProfiles,
+  approveUserProfile,
+  rejectUserProfile,
+  getPendingTuitionPosts,
+  approveTuitionPost,
+  rejectTuitionPost,
+  getPendingNIDVerifications,
+  verifyTeacherNID,
+  rejectNIDVerification,
+  banUser,
+  unbanUser,
+  createNotice,
+  getNotices,
+  deleteNotice,
+  getParentControls,
+  createParentControl,
+  updateParentRestrictions
 };

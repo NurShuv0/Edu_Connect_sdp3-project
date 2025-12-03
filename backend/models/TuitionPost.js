@@ -33,6 +33,21 @@ const TuitionPostSchema = new mongoose.Schema(
     isClosed: {
       type: Boolean,
       default: false
+    },
+
+    // Admin approval system
+    isApproved: { type: Boolean, default: false },
+    approvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null
+    },
+    approvalDate: { type: Date, default: null },
+    rejectionReason: { type: String, default: null },
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected", "closed"],
+      default: "pending"
     }
   },
   { timestamps: true }

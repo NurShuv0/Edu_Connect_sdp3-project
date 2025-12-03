@@ -29,6 +29,15 @@ const protect = async (req, res, next) => {
       return res.status(403).json({ message: "Account suspended" });
     }
 
+    // Check if user is banned
+    if (user.isBanned) {
+      return res.status(403).json({
+        message: "Account banned",
+        reason: user.banReason,
+        bannedDate: user.bannedDate
+      });
+    }
+
     req.user = user;
     next();
   } catch (err) {

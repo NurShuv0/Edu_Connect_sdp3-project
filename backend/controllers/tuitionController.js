@@ -4,9 +4,18 @@ const Match = require("../models/Match");
 
 /* --------------------------------------------------
    CREATE TUITION POST (Student)
+   Only students with approved profiles can create posts
 -------------------------------------------------- */
 exports.createPost = async (req, res) => {
   try {
+    // Check if student profile is approved
+    if (!req.user.isProfileApproved) {
+      return res.status(403).json({
+        message: "Profile not approved",
+        details: "Admin approval required to post tuitions"
+      });
+    }
+
     const {
       title,
       details,
@@ -48,10 +57,14 @@ exports.createPost = async (req, res) => {
 
 /* --------------------------------------------------
    GET APPROVED TUITION POSTS (Public)
+   Only shows approved posts
 -------------------------------------------------- */
 exports.getAllPosts = async (req, res) => {
   try {
-    const posts = await TuitionPost.find({ isClosed: false })
+    const posts = await TuitionPost.find({
+      isClosed: false,
+      status: "approved"
+    })
       .sort({ createdAt: -1 });
 
     res.json({ posts });
@@ -149,6 +162,8 @@ exports.getNearbyPosts = async (req, res) => {
           $maxDistance: radiusMeters
         }
       },
+      isClosed: false,
+      status: "approved",
       ...query
     })
       .skip(skip)
@@ -165,9 +180,18 @@ exports.getNearbyPosts = async (req, res) => {
 
 /* --------------------------------------------------
    APPLY TO TUITION (Teacher)
+   Only teachers with approved profiles can apply
 -------------------------------------------------- */
 exports.applyToPost = async (req, res) => {
   try {
+    // Check if teacher profile is approved
+    if (!req.user.isProfileApproved) {
+      return res.status(403).json({
+        message: "Profile not approved",
+        details: "Admin approval required to apply to tuitions"
+      });
+    }
+
     const { postId } = req.params;
 
     const post = await TuitionPost.findById(postId);
