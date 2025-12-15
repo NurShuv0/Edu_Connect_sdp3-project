@@ -134,6 +134,7 @@ class _TuitionCreatePageState extends State<TuitionCreatePage> {
         onPressed: _create,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.indigo,
+          foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),

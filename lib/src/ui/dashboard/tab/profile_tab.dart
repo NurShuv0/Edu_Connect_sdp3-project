@@ -10,7 +10,9 @@ import 'package:test_app/src/core/services/storage_service.dart';
 
 import 'package:test_app/src/core/services/auth_service.dart';
 import 'package:test_app/src/core/services/profile_service.dart';
+import 'package:test_app/src/core/services/tuition_service.dart';
 import 'package:test_app/src/core/utils/snackbar_utils.dart';
+import 'package:test_app/src/ui/tuition/tuition_create_page.dart';
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});
@@ -22,10 +24,13 @@ class ProfileTab extends StatefulWidget {
 class _ProfileTabState extends State<ProfileTab> {
   final auth = GetIt.instance<AuthService>();
   final profileService = GetIt.instance<ProfileService>();
+  final tuitionService = GetIt.instance<TuitionService>();
 
   bool loading = true;
   Map<String, dynamic>? user;
   Map<String, dynamic>? profile;
+  List<dynamic> myTuitions = [];
+  List<dynamic> myApplications = [];
 
   bool editMode = false;
 
@@ -35,6 +40,10 @@ class _ProfileTabState extends State<ProfileTab> {
 
   // Student fields
   final classLevelC = TextEditingController();
+  final schoolC = TextEditingController();
+  final guardianNameC = TextEditingController();
+  final guardianPhoneC = TextEditingController();
+  final guardianNidC = TextEditingController();
   final cityC = TextEditingController();
   final areaC = TextEditingController();
   final latC = TextEditingController();
@@ -65,22 +74,81 @@ class _ProfileTabState extends State<ProfileTab> {
     load();
   }
 
+  @override
+  void dispose() {
+    nameC.dispose();
+    phoneC.dispose();
+    classLevelC.dispose();
+    schoolC.dispose();
+    guardianNameC.dispose();
+    guardianPhoneC.dispose();
+    guardianNidC.dispose();
+    cityC.dispose();
+    areaC.dispose();
+    latC.dispose();
+    lngC.dispose();
+    subjectsC.dispose();
+    classLevelsC.dispose();
+    universityC.dispose();
+    departmentC.dispose();
+    jobTitleC.dispose();
+    salaryMinC.dispose();
+    salaryMaxC.dispose();
+    availDaysC.dispose();
+    availTimeC.dispose();
+    aboutC.dispose();
+    super.dispose();
+  }
+
   Future<void> load() async {
     setState(() => loading = true);
 
     try {
       final me = await auth.apiClient.get("/auth/me");
-      final p = await profileService.getMyProfile();
-
       user = me["user"];
-      profile = p["profile"];
 
       // Fill basic
       nameC.text = user?["name"] ?? "";
       phoneC.text = user?["phone"] ?? "";
 
+      // Load profile (may be null on first load, always null for admins)
+      if (auth.role == "admin") {
+        profile = null; // Admins don't have profiles
+      } else {
+        try {
+          final p = await profileService.getMyProfile();
+          profile = p["profile"];
+        } catch (e) {
+          print("Profile load error (may be first time): $e");
+          profile = null;
+        }
+      }
+
+      // Load tuitions for students and teachers
+      if (auth.role == "student") {
+        try {
+          myTuitions = await tuitionService.getMyPosts();
+        } catch (e) {
+          print("Error loading my tuitions: $e");
+          myTuitions = [];
+        }
+      }
+
+      if (auth.role == "teacher") {
+        try {
+          myApplications = await tuitionService.myApplications();
+        } catch (e) {
+          print("Error loading my applications: $e");
+          myApplications = [];
+        }
+      }
+
       if (auth.role == "student" && profile != null) {
         classLevelC.text = profile?["classLevel"] ?? "";
+        schoolC.text = profile?["school"] ?? "";
+        guardianNameC.text = profile?["guardianName"] ?? "";
+        guardianPhoneC.text = profile?["guardianPhone"] ?? "";
+        guardianNidC.text = profile?["guardianNidNumber"] ?? "";
         cityC.text = profile?["location"]?["city"] ?? "";
         areaC.text = profile?["location"]?["area"] ?? "";
 
@@ -120,7 +188,8 @@ class _ProfileTabState extends State<ProfileTab> {
         } catch (_) {}
       }
     } catch (e) {
-      showSnackBar(context, "Failed to load profile", isError: true);
+      print("User load error: $e");
+      showSnackBar(context, "Failed to load user info", isError: true);
     }
 
     setState(() => loading = false);
@@ -150,6 +219,10 @@ class _ProfileTabState extends State<ProfileTab> {
       if (auth.role == "student") {
         await profileService.updateStudentProfile({
           "classLevel": classLevelC.text.trim(),
+          "school": schoolC.text.trim(),
+          "guardianName": guardianNameC.text.trim(),
+          "guardianPhone": guardianPhoneC.text.trim(),
+          "guardianNidNumber": guardianNidC.text.trim(),
           "location": location,
         });
       } else {
@@ -199,25 +272,86 @@ class _ProfileTabState extends State<ProfileTab> {
   Widget build(BuildContext context) {
     if (loading) return const Center(child: CircularProgressIndicator());
 
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          header(),
-          const SizedBox(height: 20),
+    // Prevent admins from viewing this tab
+    if (auth.role == "admin") {
+      return const Center(
+        child: Text("Admin users don't have student/teacher profiles"),
+      );
+    }
 
-          infoCard("Email", user?["email"] ?? "-", Icons.email),
-          infoCard("Phone", user?["phone"] ?? "-", Icons.phone),
+    return Stack(
+      children: [
+        SingleChildScrollView(
+          child: Column(
+            children: [
+              SizedBox(height: editMode ? 80 : 0), // Space for top buttons
+              header(),
+              const SizedBox(height: 20),
 
-          const SizedBox(height: 20),
+              infoCard("Email", user?["email"] ?? "-", Icons.email),
+              infoCard("Phone", user?["phone"] ?? "-", Icons.phone),
 
-          if (auth.role == "student") studentSection(),
-          if (auth.role == "teacher") teacherSection(),
+              const SizedBox(height: 20),
 
-          const SizedBox(height: 30),
-          saveOrEditButtons(),
-          const SizedBox(height: 40),
-        ],
-      ),
+              if (auth.role == "student") studentSection(),
+              if (auth.role == "teacher") teacherSection(),
+
+              const SizedBox(height: 30),
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
+        // Save/Cancel buttons at top (sticky)
+        if (editMode)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha((0.1 * 255).round()),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    onPressed: () async {
+                      await save();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(120, 44),
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text('Save'),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton(
+                    onPressed: () {
+                      setState(() => editMode = false);
+                      load();
+                    },
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(120, 44),
+                    ),
+                    child: const Text('Cancel'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -382,34 +516,193 @@ class _ProfileTabState extends State<ProfileTab> {
   }
 
   Widget studentSection() {
-    return sectionBox("Student Profile", [
-      field("Class Level", classLevelC),
-      field("City", cityC),
-      field("Area", areaC),
-      field("Latitude", latC),
-      field("Longitude", lngC),
-    ]);
+    return Column(
+      children: [
+        sectionBox("Student Profile", [
+          field("Class Level", classLevelC),
+          field("School/College Name", schoolC),
+          const SizedBox(height: 16),
+          const Text(
+            "👨‍👩‍👧 Guardian Information",
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 12),
+          field("Guardian's Name", guardianNameC),
+          field("Guardian's Phone", guardianPhoneC),
+          field("Guardian's NID Number", guardianNidC),
+          const SizedBox(height: 16),
+          const Text(
+            "📍 Location",
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _improvedLocationPicker(),
+        ]),
+        const SizedBox(height: 20),
+        _tuitionCardSection(),
+      ],
+    );
   }
 
   Widget teacherSection() {
-    return sectionBox("Teacher Profile", [
-      field("Subjects", subjectsC),
-      field("Class Levels", classLevelsC),
-      field("University", universityC),
-      field("Department", departmentC),
-      field("Job Title", jobTitleC),
-      field("Min Salary", salaryMinC),
-      field("Max Salary", salaryMaxC),
-      field("City", cityC),
-      field("Area", areaC),
-      field("Latitude", latC),
-      field("Longitude", lngC),
-      field("Available Days", availDaysC),
-      field("Available Time", availTimeC),
-      field("About", aboutC),
-      const SizedBox(height: 16),
-      _nidCardSection(),
-    ]);
+    return Column(
+      children: [
+        sectionBox("Teacher Profile", [
+          field("Subjects", subjectsC),
+          field("Class Levels", classLevelsC),
+          field("University", universityC),
+          field("Department", departmentC),
+          field("Job Title", jobTitleC),
+          field("Min Salary", salaryMinC),
+          field("Max Salary", salaryMaxC),
+          _improvedLocationPicker(),
+          field("Available Days", availDaysC),
+          field("Available Time", availTimeC),
+          field("About", aboutC),
+          const SizedBox(height: 16),
+          _nidCardSection(),
+        ]),
+        const SizedBox(height: 20),
+        _myTuitionsCardSection(),
+      ],
+    );
+  }
+
+  Widget _improvedLocationPicker() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey.shade300),
+        color: Colors.grey.shade50,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "📍 Set Your Location",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 12),
+          // Search/Address input
+          TextField(
+            controller: cityC,
+            decoration: InputDecoration(
+              hintText: "Search address or city name...",
+              prefixIcon: const Icon(Icons.location_on),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () => cityC.clear(),
+              ),
+            ),
+            onChanged: (value) {
+              // Could add autocomplete here
+            },
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: areaC,
+                  decoration: InputDecoration(
+                    hintText: "Area/District",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _getCurrentLocation,
+                  icon: const Icon(Icons.my_location),
+                  label: const Text("Auto-detect"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.indigo,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Map preview button
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _openMapPicker,
+              icon: const Icon(Icons.map),
+              label: const Text("Pinpoint on Map"),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                side: const BorderSide(color: Colors.indigo),
+              ),
+            ),
+          ),
+          if (latC.text.isNotEmpty && lngC.text.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.indigo.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Current Location",
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "Lat: ${latC.text}, Lng: ${lngC.text}",
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[700],
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _getCurrentLocation() async {
+    try {
+      showSnackBar(context, "Getting your current location...");
+      // In a real app, you would use geolocator package
+      // For now, show a placeholder
+      showSnackBar(context, "Location auto-detect requires GPS permissions");
+    } catch (e) {
+      showSnackBar(context, "Error: $e", isError: true);
+    }
+  }
+
+  Future<void> _openMapPicker() async {
+    showSnackBar(
+      context,
+      "Map picker coming soon - for now, enter coordinates manually",
+    );
+    // In a real app, you would open flutter_map or google_maps
   }
 
   Widget _nidCardSection() {
@@ -581,6 +874,248 @@ class _ProfileTabState extends State<ProfileTab> {
             ),
             const SizedBox(height: 12),
             ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _tuitionCardSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 5)],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "📚 My Tuition Posts",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                ElevatedButton.icon(
+                  onPressed: editMode || auth.role != "student"
+                      ? null
+                      : () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const TuitionCreatePage(),
+                            ),
+                          ).then((_) {
+                            load(); // Reload after returning
+                          });
+                        },
+                  icon: const Icon(Icons.add),
+                  label: const Text("Post"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.indigo,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (myTuitions.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: const Center(
+                  child: Text(
+                    "No tuition posts yet. Create your first tuition post!",
+                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
+                ),
+              )
+            else
+              Column(
+                children: myTuitions.map((tuition) {
+                  final status = tuition["status"] ?? "pending";
+                  final statusColor = status == "approved"
+                      ? Colors.green
+                      : status == "rejected"
+                      ? Colors.red
+                      : Colors.orange;
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.grey.shade50,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                tuition["title"] ?? "Untitled",
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: statusColor.withAlpha(
+                                  (0.2 * 255).round(),
+                                ),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                status.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: statusColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Class: ${tuition["classLevel"] ?? "N/A"} | Salary: ${tuition["salaryMin"]}-${tuition["salaryMax"]}",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _myTuitionsCardSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 5)],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "📖 My Applications",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            if (myApplications.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: const Center(
+                  child: Text(
+                    "No applications yet. Start applying to tuition posts!",
+                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
+                ),
+              )
+            else
+              Column(
+                children: myApplications.map((app) {
+                  final post = app["postId"] ?? {};
+                  final status = app["status"] ?? "pending";
+                  final statusColor = status == "approved"
+                      ? Colors.green
+                      : status == "rejected"
+                      ? Colors.red
+                      : Colors.orange;
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.grey.shade50,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                post["title"] ?? "Untitled",
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: statusColor.withAlpha(
+                                  (0.2 * 255).round(),
+                                ),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                status.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: statusColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Class: ${post["classLevel"] ?? "N/A"} | Salary: ${post["salaryMin"]}-${post["salaryMax"]}",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
           ],
         ),
       ),

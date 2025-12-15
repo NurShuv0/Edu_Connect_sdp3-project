@@ -14,11 +14,19 @@ class _TopTeachersState extends State<TopTeachers> {
   List<Map<String, dynamic>> teachers = [];
   bool loading = true;
   String? error;
+  late ScrollController _scrollController;
 
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController();
     _loadTopTeachers();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadTopTeachers() async {
@@ -29,12 +37,51 @@ class _TopTeachersState extends State<TopTeachers> {
         teachers = data;
         loading = false;
       });
+      // Start auto-scroll after data loads
+      Future.delayed(const Duration(milliseconds: 500), _startAutoScroll);
     } catch (e) {
       setState(() {
         error = "Failed to load top teachers";
         loading = false;
       });
       print("TopTeachers error: $e");
+    }
+  }
+
+  void _startAutoScroll() {
+    if (!mounted || teachers.isEmpty) return;
+
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      _animateScroll();
+    });
+  }
+
+  void _animateScroll() async {
+    if (!mounted || teachers.isEmpty) return;
+
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.offset;
+
+    // If we're at the end, scroll back to beginning
+    if (currentScroll >= maxScroll) {
+      await _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      // Scroll to next item
+      await _scrollController.animateTo(
+        currentScroll + 320, // Card width (300) + margin (20)
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.easeInOut,
+      );
+    }
+
+    // Continue scrolling
+    if (mounted) {
+      Future.delayed(const Duration(seconds: 3), _animateScroll);
     }
   }
 
@@ -74,12 +121,16 @@ class _TopTeachersState extends State<TopTeachers> {
         else if (teachers.isEmpty)
           _emptyPlaceholder()
         else
-          Column(
-            children: teachers
-                .asMap()
-                .entries
-                .map((entry) => _teacherCard(entry.key + 1, entry.value))
-                .toList(),
+          SingleChildScrollView(
+            controller: _scrollController,
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: teachers
+                  .asMap()
+                  .entries
+                  .map((entry) => _teacherCard(entry.key + 1, entry.value))
+                  .toList(),
+            ),
           ),
       ],
     );
@@ -94,7 +145,8 @@ class _TopTeachersState extends State<TopTeachers> {
     final university = teacher['university'] ?? '';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      width: 300,
+      margin: const EdgeInsets.only(right: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -108,7 +160,9 @@ class _TopTeachersState extends State<TopTeachers> {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Rank Badge
           Container(
@@ -129,38 +183,30 @@ class _TopTeachersState extends State<TopTeachers> {
               ),
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(height: 12),
           // Teacher Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                if (university.isNotEmpty)
-                  Text(
-                    university,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                const SizedBox(height: 6),
-                Text(
-                  subjects,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
+          Text(
+            name,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(height: 4),
+          if (university.isNotEmpty)
+            Text(
+              university,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          const SizedBox(height: 6),
+          Text(
+            subjects,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 12),
           // Rating Badge
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -169,23 +215,19 @@ class _TopTeachersState extends State<TopTeachers> {
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Colors.amber.shade300),
             ),
-            child: Column(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  children: [
-                    const Icon(Icons.star, color: Colors.amber, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      rating.toStringAsFixed(1),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
+                const Icon(Icons.star, color: Colors.amber, size: 16),
+                const SizedBox(width: 4),
+                Text(
+                  rating.toStringAsFixed(1),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(width: 4),
                 Text(
                   '($ratingCount)',
                   style: TextStyle(fontSize: 10, color: Colors.grey.shade600),

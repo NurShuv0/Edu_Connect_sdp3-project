@@ -21,6 +21,14 @@ const matchSchema = new mongoose.Schema(
       type: String,
       enum: ["active", "ended"],
       default: "active"
+    },
+    isChatAllowed: {
+      type: Boolean,
+      default: true
+    },
+    isDemoAllowed: {
+      type: Boolean,
+      default: true
     }
   },
   { timestamps: true }

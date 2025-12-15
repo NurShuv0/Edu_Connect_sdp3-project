@@ -24,16 +24,10 @@ class _AdminHeaderState extends State<AdminHeader> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF1A2332).withOpacity(0.8),
-            const Color(0xFF0F1419).withOpacity(0.9),
-          ],
+          colors: [const Color(0xCC1A2332), const Color(0xE60F1419)],
         ),
         border: Border(
-          bottom: BorderSide(
-            color: const Color(0xFF00D4FF).withOpacity(0.2),
-            width: 1,
-          ),
+          bottom: BorderSide(color: const Color(0x3300D4FF), width: 1),
         ),
       ),
       child: Row(
@@ -53,10 +47,7 @@ class _AdminHeaderState extends State<AdminHeader> {
               const SizedBox(height: 4),
               Text(
                 'Platform Administration',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.6),
-                  fontSize: 13,
-                ),
+                style: TextStyle(color: const Color(0x99FFFFFF), fontSize: 13),
               ),
             ],
           ),
@@ -90,7 +81,7 @@ class _AdminHeaderState extends State<AdminHeader> {
           decoration: BoxDecoration(
             color: const Color(0xFF1A2332),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFF00D4FF).withOpacity(0.2)),
+            border: Border.all(color: const Color(0x3300D4FF)),
           ),
           child: Icon(icon, color: const Color(0xFF00D4FF), size: 20),
         ),
@@ -107,10 +98,7 @@ class _AdminHeaderState extends State<AdminHeader> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                const Color(0xFFFF6B9D).withOpacity(0.8),
-                const Color(0xFFFF1744).withOpacity(0.8),
-              ],
+              colors: [const Color(0xCCFF6B9D), const Color(0xCCFF1744)],
             ),
             borderRadius: BorderRadius.circular(10),
           ),

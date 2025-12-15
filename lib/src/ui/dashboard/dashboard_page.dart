@@ -10,6 +10,7 @@ import 'tab/profile_tab.dart';
 import 'tab/search_tab.dart';
 import 'tab/admin_tab.dart'; // NEW
 import 'app_sidebar.dart'; // NEW SIDEBAR
+import 'package:test_app/src/ui/admin/admin_home_page_tabbed.dart';
 
 import 'package:test_app/src/core/services/auth_service.dart';
 
@@ -38,9 +39,33 @@ class _DashboardPageState extends State<DashboardPage>
 
   @override
   Widget build(BuildContext context) {
+    // If user is admin, show professional admin dashboard instead of regular dashboard
+    if (isAdmin) {
+      return const AdminHomePageTabbed();
+    }
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu_rounded, size: 28),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
+        title: const Text(
+          "EduConnect",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+            color: Colors.indigo,
+          ),
+        ),
+        centerTitle: false,
+      ),
       drawer: AppSidebar(
         currentIndex: index,
         onTabChanged: (newIndex) {

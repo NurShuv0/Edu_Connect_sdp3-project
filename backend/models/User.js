@@ -13,7 +13,10 @@ const UserSchema = new mongoose.Schema(
 
     phone: { type: String, default: "" },
 
-    password: { type: String, required: true },
+    password: { type: String, required: false },
+
+    // legacy hashed password field used by tests or older imports
+    passwordHash: { type: String, default: null },
 
     role: {
       type: String,

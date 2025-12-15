@@ -4,12 +4,13 @@ const StudentProfile = require("../models/StudentProfile");
 const TeacherProfile = require("../models/TeacherProfile");
 const TuitionPost = require("../models/TuitionPost");
 const TuitionApplication = require("../models/TuitionApplication");
+const Match = require("../models/Match");
 const DemoSession = require("../models/DemoSession");
 const Notification = require("../models/Notification");
 const Notice = require("../models/Notice");
 const TeacherNID = require("../models/TeacherNID");
 const ParentControl = require("../models/ParentControl");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const logger = require("../config/logger");
 
 // --------------------------------------------------
@@ -118,6 +119,23 @@ const approveApplication = async (req, res) => {
     res.json({ message: "Application approved", application });
   } catch (err) {
     console.error("approveApplication error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// --------------------------------------------------
+// GET PENDING TUITION APPLICATIONS
+// --------------------------------------------------
+const getPendingApplications = async (req, res) => {
+  try {
+    const applications = await TuitionApplication.find({ status: "pending" })
+      .populate("postId", "title classLevel subjects salary city area")
+      .populate("teacherId", "name email role")
+      .sort({ createdAt: -1 });
+
+    res.json({ applications });
+  } catch (err) {
+    console.error("getPendingApplications error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -406,27 +424,39 @@ const getDashboardStats = async (req, res) => {
     // Get tuition stats
     const activeTuitions = await TuitionPost.countDocuments({ status: "approved" });
     const pendingTuitions = await TuitionPost.countDocuments({ status: "pending" });
+    const pendingApplications = await TuitionApplication.countDocuments({ status: "pending" });
+    
+    // Get match stats
+    const activeMatches = await Match.countDocuments({ status: "active" });
+    
+    // Get demo stats
     const pendingDemos = await DemoSession.countDocuments({ status: "pending" });
+    const approvedDemos = await DemoSession.countDocuments({ status: "approved" });
 
+    // Return in the format the test expects
     res.status(200).json({
-      success: true,
-      data: {
-        users: {
-          totalUsers,
-          students,
-          teachers,
-          admins,
-          suspendedUsers,
-          verifiedUsers,
-          activeUsers: totalUsers - suspendedUsers
-        },
-        tuitions: {
-          activeTuitions,
-          pendingTuitions
-        },
-        demos: {
-          pendingDemos
-        }
+      users: {
+        totalUsers,
+        students,
+        teachers,
+        admins,
+        suspendedUsers,
+        verifiedUsers,
+        activeUsers: totalUsers - suspendedUsers
+      },
+      tuitions: {
+        activeTuitions,
+        pendingTuitions
+      },
+      applications: {
+        pendingApplications
+      },
+      matches: {
+        activeMatches
+      },
+      demos: {
+        pendingDemos,
+        approvedDemos
       }
     });
   } catch (error) {
@@ -624,9 +654,7 @@ const approveTuitionPost = async (req, res) => {
     logger.info(`Tuition post approved: ${post._id} by admin: ${req.user.email}`);
 
     res.status(200).json({
-      success: true,
-      message: "Tuition post approved",
-      data: post
+      post
     });
   } catch (error) {
     logger.error("Error approving post:", error.message);
@@ -674,6 +702,67 @@ const rejectTuitionPost = async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: "Failed to reject post" });
+  }
+};
+
+/**
+ * Approve tuition application and create match
+ * PATCH /api/tuition/admin/applications/:appId/status
+ */
+const approveTuitionApplication = async (req, res) => {
+  try {
+    const { appId } = req.params;
+    const { status } = req.body;
+
+    if (status !== "approved") {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid status" });
+    }
+
+    const application = await TuitionApplication.findById(appId);
+    if (!application) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Application not found" });
+    }
+
+    // Update application status
+    application.status = "approved";
+    await application.save();
+
+    // Find the post
+    const post = await TuitionPost.findById(application.postId);
+    if (!post) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Post not found" });
+    }
+
+    // Create a match
+    const match = await Match.create({
+      tuitionId: post._id,
+      studentId: post.studentId,
+      teacherId: application.teacherId,
+      status: "active",
+      isChatAllowed: true,
+      isDemoAllowed: true
+    });
+
+    logger.info(
+      `Application approved and match created: ${appId} by admin: ${req.user.email}`
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Application approved and match created",
+      match
+    });
+  } catch (error) {
+    logger.error("Error approving application:", error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to approve application" });
   }
 };
 
@@ -1078,6 +1167,7 @@ module.exports = {
   approveTeacherProfile,
   approveTuition,
   approveApplication,
+  getPendingApplications,
   getAllDemoSessions,
   updateDemoStatus,
   listUsers,
@@ -1094,6 +1184,7 @@ module.exports = {
   getPendingTuitionPosts,
   approveTuitionPost,
   rejectTuitionPost,
+  approveTuitionApplication,
   getPendingNIDVerifications,
   verifyTeacherNID,
   rejectNIDVerification,

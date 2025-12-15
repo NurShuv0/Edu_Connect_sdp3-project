@@ -5,6 +5,7 @@ import 'dart:convert';
 
 import 'package:test_app/src/core/services/auth_service.dart';
 import 'package:test_app/src/core/services/storage_service.dart';
+import 'package:test_app/src/config/api_config.dart';
 import 'widgets/admin_header.dart';
 import 'widgets/admin_stats_card.dart';
 import 'widgets/admin_users_table.dart';
@@ -43,7 +44,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
     try {
       final token = await storageService.getToken();
       final response = await http.get(
-        Uri.parse('http://localhost:5000/api/admin/dashboard/stats'),
+        Uri.parse('${ApiConfig.baseUrl}/api/admin/dashboard/stats'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -65,7 +66,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
     try {
       final token = await storageService.getToken();
       final response = await http.get(
-        Uri.parse('http://localhost:5000/api/admin/users?limit=50'),
+        Uri.parse('${ApiConfig.baseUrl}/api/admin/users?limit=50'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -88,7 +89,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
     try {
       final token = await storageService.getToken();
       final response = await http.get(
-        Uri.parse('http://localhost:5000/api/admin/profiles/pending'),
+        Uri.parse('${ApiConfig.baseUrl}/api/admin/profiles/pending'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -111,7 +112,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
     try {
       final token = await storageService.getToken();
       final response = await http.get(
-        Uri.parse('http://localhost:5000/api/admin/tuition-posts/pending'),
+        Uri.parse('${ApiConfig.baseUrl}/api/admin/tuition-posts/pending'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -134,7 +135,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
     try {
       final token = await storageService.getToken();
       final response = await http.get(
-        Uri.parse('http://localhost:5000/api/admin/nid/pending'),
+        Uri.parse('${ApiConfig.baseUrl}/api/admin/nid/pending'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -157,7 +158,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
     try {
       final token = await storageService.getToken();
       final response = await http.patch(
-        Uri.parse('http://localhost:5000/api/admin/profiles/$userId/approve'),
+        Uri.parse('${ApiConfig.baseUrl}/api/admin/profiles/$userId/approve'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -168,7 +169,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile approved successfully')),
         );
-        setState(() {});
+        if (mounted) setState(() {});
       }
     } catch (e) {
       print('Error approving profile: $e');
@@ -179,7 +180,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
     try {
       final token = await storageService.getToken();
       final response = await http.patch(
-        Uri.parse('http://localhost:5000/api/admin/profiles/$userId/reject'),
+        Uri.parse('${ApiConfig.baseUrl}/api/admin/profiles/$userId/reject'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -191,7 +192,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Profile rejected')));
-        setState(() {});
+        if (mounted) setState(() {});
       }
     } catch (e) {
       print('Error rejecting profile: $e');
@@ -203,7 +204,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
       final token = await storageService.getToken();
       final response = await http.patch(
         Uri.parse(
-          'http://localhost:5000/api/admin/tuition-posts/$postId/approve',
+          '${ApiConfig.baseUrl}/api/admin/tuition-posts/$postId/approve',
         ),
         headers: {
           'Authorization': 'Bearer $token',
@@ -215,7 +216,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Tuition post approved')));
-        setState(() {});
+        if (mounted) setState(() {});
       }
     } catch (e) {
       print('Error approving post: $e');
@@ -227,7 +228,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
       final token = await storageService.getToken();
       final response = await http.patch(
         Uri.parse(
-          'http://localhost:5000/api/admin/tuition-posts/$postId/reject',
+          '${ApiConfig.baseUrl}/api/admin/tuition-posts/$postId/reject',
         ),
         headers: {
           'Authorization': 'Bearer $token',
@@ -240,7 +241,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Tuition post rejected')));
-        setState(() {});
+        if (mounted) setState(() {});
       }
     } catch (e) {
       print('Error rejecting post: $e');
@@ -251,7 +252,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
     try {
       final token = await storageService.getToken();
       final response = await http.patch(
-        Uri.parse('http://localhost:5000/api/admin/nid/$nidId/verify'),
+        Uri.parse('${ApiConfig.baseUrl}/api/admin/nid/$nidId/verify'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -262,7 +263,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('NID verified successfully')),
         );
-        setState(() {});
+        if (mounted) setState(() {});
       }
     } catch (e) {
       print('Error verifying NID: $e');
@@ -273,7 +274,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
     try {
       final token = await storageService.getToken();
       final response = await http.patch(
-        Uri.parse('http://localhost:5000/api/admin/users/$userId/ban'),
+        Uri.parse('${ApiConfig.baseUrl}/api/admin/users/$userId/ban'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -285,7 +286,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('User banned successfully')),
         );
-        setState(() {});
+        if (mounted) setState(() {});
       }
     } catch (e) {
       print('Error banning user: $e');
@@ -300,7 +301,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
     try {
       final token = await storageService.getToken();
       final response = await http.post(
-        Uri.parse('http://localhost:5000/api/admin/notices'),
+        Uri.parse('${ApiConfig.baseUrl}/api/admin/notices'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -317,7 +318,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Notice created successfully')),
         );
-        setState(() {});
+        if (mounted) setState(() {});
       }
     } catch (e) {
       print('Error creating notice: $e');
@@ -432,6 +433,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
                 );
               }
 
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text(
+                    'Error: ${snapshot.error}',
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                );
+              }
+
               final stats = snapshot.data ?? {};
               final users = stats['users'] as Map<String, dynamic>? ?? {};
               final tuitions = stats['tuitions'] as Map<String, dynamic>? ?? {};
@@ -508,6 +518,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
             child: CircularProgressIndicator(color: Color(0xFF00D4FF)),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: const TextStyle(color: Colors.red),
+            ),
           );
         }
 
@@ -606,6 +625,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
             child: CircularProgressIndicator(color: Color(0xFF00D4FF)),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: const TextStyle(color: Colors.red),
+            ),
           );
         }
 
@@ -712,6 +740,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
           );
         }
 
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: const TextStyle(color: Colors.red),
+            ),
+          );
+        }
+
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const Center(
             child: Text(
@@ -788,6 +825,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
             child: CircularProgressIndicator(color: Color(0xFF00D4FF)),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: const TextStyle(color: Colors.red),
+            ),
           );
         }
 
@@ -893,6 +939,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
                     child: CircularProgressIndicator(color: Color(0xFF00D4FF)),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Error: ${snapshot.error}',
+                      style: const TextStyle(color: Colors.red),
+                    ),
                   );
                 }
 
@@ -1005,6 +1060,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
                   );
                 }
 
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Error: ${snapshot.error}',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  );
+                }
+
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const Center(
                     child: Text(
@@ -1035,7 +1099,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
     try {
       final token = await storageService.getToken();
       final response = await http.get(
-        Uri.parse('http://localhost:5000/api/admin/notices'),
+        Uri.parse('${ApiConfig.baseUrl}/api/admin/notices'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -1113,7 +1177,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
           ),
         ],
       ),
-    );
+    ).then((_) => controller.dispose());
   }
 
   void _showBanDialog(String userId) {
@@ -1155,7 +1219,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
           ),
         ],
       ),
-    );
+    ).then((_) => controller.dispose());
   }
 
   void _showCreateNoticeDialog() {
@@ -1247,7 +1311,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
           ),
         ],
       ),
-    );
+    ).then((_) {
+      titleController.dispose();
+      contentController.dispose();
+    });
   }
 
   void _handleLogout() {

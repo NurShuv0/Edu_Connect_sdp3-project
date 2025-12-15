@@ -8,7 +8,7 @@ const TeacherNIDSchema = new mongoose.Schema(
       required: true
     },
 
-    nidNumber: { type: String, required: true, unique: true },
+    nidNumber: { type: String, required: true, index: true },
     
     // Document storage paths/URLs
     frontImageUrl: { type: String, required: true },
@@ -44,6 +44,5 @@ const TeacherNIDSchema = new mongoose.Schema(
 
 // Index for teacher lookup
 TeacherNIDSchema.index({ teacherId: 1 });
-TeacherNIDSchema.index({ nidNumber: 1 });
 
 module.exports = mongoose.model("TeacherNID", TeacherNIDSchema);

@@ -46,8 +46,8 @@ const TuitionPostSchema = new mongoose.Schema(
     rejectionReason: { type: String, default: null },
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected", "closed"],
-      default: "pending"
+      enum: ["pending", "pending_admin_review", "approved", "rejected", "closed"],
+      default: "pending_admin_review"
     }
   },
   { timestamps: true }

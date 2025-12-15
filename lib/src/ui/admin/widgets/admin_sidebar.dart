@@ -21,9 +21,7 @@ class _AdminSidebarState extends State<AdminSidebar> {
           end: Alignment.bottomCenter,
           colors: [const Color(0xFF1A2332), const Color(0xFF0F1419)],
         ),
-        border: Border(
-          right: BorderSide(color: const Color(0xFF00D4FF).withOpacity(0.1)),
-        ),
+        border: Border(right: BorderSide(color: const Color(0x1A00D4FF))),
       ),
       child: Column(
         children: [
@@ -63,14 +61,14 @@ class _AdminSidebarState extends State<AdminSidebar> {
                 Text(
                   'Admin Panel',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.6),
+                    color: const Color(0x99FFFFFF),
                     fontSize: 12,
                   ),
                 ),
               ],
             ),
           ),
-          Divider(color: const Color(0xFF00D4FF).withOpacity(0.1), height: 1),
+          Divider(color: const Color(0x1A00D4FF), height: 1),
           // Menu Items
           Expanded(
             child: ListView(
@@ -135,7 +133,7 @@ class _AdminSidebarState extends State<AdminSidebar> {
                 icon: const Icon(Icons.logout, size: 16),
                 label: const Text('Logout'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF1744).withOpacity(0.8),
+                  backgroundColor: const Color(0xCCFF1744),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
@@ -169,18 +167,13 @@ class _AdminSidebarState extends State<AdminSidebar> {
           decoration: BoxDecoration(
             gradient: isSelected
                 ? LinearGradient(
-                    colors: [
-                      const Color(0xFF00D4FF).withOpacity(0.2),
-                      const Color(0xFF00B8E6).withOpacity(0.1),
-                    ],
+                    colors: [const Color(0x3300D4FF), const Color(0x1A00B8E6)],
                   )
                 : null,
             color: isSelected ? null : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: isSelected
-                  ? const Color(0xFF00D4FF).withOpacity(0.4)
-                  : Colors.transparent,
+              color: isSelected ? const Color(0x6600D4FF) : Colors.transparent,
               width: 1.5,
             ),
           ),
@@ -190,7 +183,7 @@ class _AdminSidebarState extends State<AdminSidebar> {
                 icon,
                 color: isSelected
                     ? const Color(0xFF00D4FF)
-                    : Colors.white.withOpacity(0.5),
+                    : const Color(0x80FFFFFF),
                 size: 20,
               ),
               const SizedBox(width: 12),

@@ -30,12 +30,37 @@ class _AdminTabState extends State<AdminTab> {
     setState(() => loading = true);
 
     try {
-      stats = await admin.getStats();
-      users = await admin.getUsers();
-      teachers = await admin.getTeachersPending();
-      tuitions = await admin.getTuitionsPending();
+      // Load each section independently so one failure doesn't block others
+      try {
+        stats = await admin.getStats();
+      } catch (e) {
+        print("Error loading stats: $e");
+        stats = null;
+      }
+
+      try {
+        users = await admin.getUsers();
+      } catch (e) {
+        print("Error loading users: $e");
+        users = [];
+      }
+
+      try {
+        teachers = await admin.getTeachersPending();
+      } catch (e) {
+        print("Error loading pending teachers: $e");
+        teachers = [];
+      }
+
+      try {
+        tuitions = await admin.getTuitionsPending();
+      } catch (e) {
+        print("Error loading pending tuitions: $e");
+        tuitions = [];
+      }
     } catch (e) {
-      showSnackBar(context, "Admin load failed: $e", isError: true);
+      print("Unexpected error in loadData: $e");
+      // Don't show snackbar - individual calls handle their own errors
     }
 
     setState(() => loading = false);
@@ -55,41 +80,47 @@ class _AdminTabState extends State<AdminTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Admin Dashboard",
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
+            //===============================
+            // PLATFORM OVERVIEW CARD
+            //===============================
+            _platformOverviewCard(),
+
+            const SizedBox(height: 24),
 
             //===============================
-            // ADMIN STATS
+            // KEY METRICS (3 cards)
             //===============================
-            _sectionTitle("📊 Overview Stats"),
-            _statsGrid(),
-
-            const SizedBox(height: 30),
-
-            //===============================
-            // USERS MANAGEMENT
-            //===============================
-            _sectionTitle("👥 Users"),
-            _userList(),
+            _keyMetricsRow(),
 
             const SizedBox(height: 30),
 
             //===============================
-            // TEACHER APPROVALS
+            // RECENT USERS TABLE
             //===============================
-            _sectionTitle("🎓 Teacher Approvals"),
-            _teacherApprovalList(),
+            _recentUsersSection(),
 
             const SizedBox(height: 30),
 
             //===============================
-            // TUITION APPROVALS
+            // DEMO REQUESTS SECTION
             //===============================
-            _sectionTitle("📘 Tuition Approvals"),
-            _tuitionApprovalList(),
+            _demoRequestsSection(),
+
+            const SizedBox(height: 30),
+
+            //===============================
+            // TEACHER & TUITION APPROVALS
+            //===============================
+            if (teachers.isNotEmpty) ...[
+              _sectionTitle("🎓 Teacher Approvals"),
+              _teacherApprovalList(),
+              const SizedBox(height: 30),
+            ],
+
+            if (tuitions.isNotEmpty) ...[
+              _sectionTitle("📘 Tuition Approvals"),
+              _tuitionApprovalList(),
+            ],
           ],
         ),
       ),
@@ -112,73 +143,286 @@ class _AdminTabState extends State<AdminTab> {
   );
 
   //===========================================================
-  // STATS GRID
+  // PLATFORM OVERVIEW CARD
   //===========================================================
-  Widget _statsGrid() {
-    return GridView(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 2.2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-      ),
-      children: [
-        _statCard("Total Users", stats?["totalUsers"]),
-        _statCard("Students", stats?["students"]),
-        _statCard("Teachers", stats?["teachers"]),
-        _statCard("Active Tuitions", stats?["activeTuitions"]),
-        _statCard("Pending Tuitions", stats?["pendingTuitions"]),
-        _statCard("Demo Requests", stats?["demoRequests"]),
-      ],
-    );
-  }
+  Widget _platformOverviewCard() {
+    final totalUsers = stats?["totalUsers"] ?? 0;
+    final students = stats?["students"] ?? 0;
+    final teachers = stats?["teachers"] ?? 0;
 
-  Widget _statCard(String title, dynamic value) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.indigo.withAlpha((0.1 * 255).round()),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF7C3AED), Color(0xFFEC4899)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "$value",
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          Row(
+            children: [
+              const Icon(Icons.dashboard, color: Colors.white, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Platform Overview",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      "$totalUsers users • $students students • $teachers teachers",
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 6),
-          Text(title, style: TextStyle(color: Colors.grey.shade600)),
         ],
       ),
     );
   }
 
   //===========================================================
-  // USERS LIST
+  // KEY METRICS ROW (3 cards)
   //===========================================================
-  Widget _userList() {
-    return Column(
-      children: users.map((u) {
-        final suspended = u["isSuspended"] == true;
-
-        return Card(
-          child: ListTile(
-            title: Text(u["name"]),
-            subtitle: Text("${u["email"]} • ${u["role"]}"),
-            trailing: Switch(
-              value: suspended,
-              activeThumbColor: Colors.red,
-              onChanged: (_) async {
-                await admin.toggleSuspend(u["id"]);
-                loadData();
-              },
-            ),
+  Widget _keyMetricsRow() {
+    return Row(
+      children: [
+        Expanded(
+          child: _metricCard(
+            icon: Icons.school,
+            title: "Active Tuitions",
+            value: "${stats?["activeTuitions"] ?? 0}",
+            color: Colors.green,
           ),
-        );
-      }).toList(),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _metricCard(
+            icon: Icons.pending_actions,
+            title: "Pending Approvals",
+            value: "${(stats?["pendingTuitions"] ?? 0) + teachers.length}",
+            color: Colors.orange,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _metricCard(
+            icon: Icons.video_call,
+            title: "Demo Requests",
+            value: "${stats?["demoRequests"] ?? 0}",
+            color: Colors.blue,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _metricCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 28),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  //===========================================================
+  // RECENT USERS SECTION (TABLE)
+  //===========================================================
+  Widget _recentUsersSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Recent Users",
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade200),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  border: Border(
+                    bottom: BorderSide(color: Colors.grey.shade200),
+                  ),
+                ),
+                child: const Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        "User",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        "Role",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        "Status",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Rows
+              ...users.take(6).map((u) {
+                final suspended = u["isSuspended"] == true;
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey.shade100),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              u["name"] ?? "Unknown",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Text(
+                              u["email"] ?? "",
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          u["role"] ?? "user",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          suspended ? "Suspended" : "Active",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: suspended ? Colors.red : Colors.green,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  //===========================================================
+  // DEMO REQUESTS SECTION
+  //===========================================================
+  Widget _demoRequestsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Demo Requests",
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            border: Border.all(color: Colors.grey.shade200),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Text(
+            "No demo requests yet.",
+            style: TextStyle(color: Colors.grey, fontSize: 14),
+          ),
+        ),
+      ],
     );
   }
 

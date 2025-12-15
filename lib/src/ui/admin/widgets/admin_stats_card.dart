@@ -86,18 +86,32 @@ class _AdminStatsCardState extends State<AdminStatsCard>
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    const Color(0xFF1A2332).withOpacity(_isHovered ? 0.9 : 0.6),
-                    const Color(0xFF0F1419).withOpacity(_isHovered ? 0.8 : 0.5),
+                    Color.fromARGB(
+                      ((_isHovered ? 0.9 : 0.6) * 255).round(),
+                      0x1A,
+                      0x23,
+                      0x32,
+                    ),
+                    Color.fromARGB(
+                      ((_isHovered ? 0.8 : 0.5) * 255).round(),
+                      0x0F,
+                      0x14,
+                      0x19,
+                    ),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: widget.color.withOpacity(_isHovered ? 0.6 : 0.3),
+                  color: widget.color.withAlpha(
+                    ((_isHovered ? 0.6 : 0.3) * 255).round(),
+                  ),
                   width: 2,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: widget.color.withOpacity(_isHovered ? 0.4 : 0.1),
+                    color: widget.color.withAlpha(
+                      ((_isHovered ? 0.4 : 0.1) * 255).round(),
+                    ),
                     blurRadius: _isHovered ? 30 : 15,
                     spreadRadius: _isHovered ? 5 : 0,
                     offset: Offset(0, _isHovered ? 10 : 5),
@@ -116,13 +130,17 @@ class _AdminStatsCardState extends State<AdminStatsCard>
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              widget.color.withOpacity(_isHovered ? 0.3 : 0.2),
-                              widget.color.withOpacity(_isHovered ? 0.2 : 0.1),
+                              widget.color.withAlpha(
+                                ((_isHovered ? 0.3 : 0.2) * 255).round(),
+                              ),
+                              widget.color.withAlpha(
+                                ((_isHovered ? 0.2 : 0.1) * 255).round(),
+                              ),
                             ],
                           ),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: widget.color.withOpacity(0.4),
+                            color: widget.color.withAlpha((0.4 * 255).round()),
                           ),
                         ),
                         child: Icon(
@@ -136,7 +154,7 @@ class _AdminStatsCardState extends State<AdminStatsCard>
                         opacity: _isHovered ? 1 : 0,
                         child: Icon(
                           Icons.arrow_outward,
-                          color: widget.color.withOpacity(0.6),
+                          color: widget.color.withAlpha((0.6 * 255).round()),
                           size: 18,
                         ),
                       ),
@@ -163,7 +181,9 @@ class _AdminStatsCardState extends State<AdminStatsCard>
                           fontWeight: FontWeight.bold,
                           shadows: [
                             Shadow(
-                              color: widget.color.withOpacity(0.3),
+                              color: widget.color.withAlpha(
+                                (0.3 * 255).round(),
+                              ),
                               blurRadius: 10,
                             ),
                           ],
@@ -173,7 +193,7 @@ class _AdminStatsCardState extends State<AdminStatsCard>
                       Text(
                         widget.subtitle,
                         style: TextStyle(
-                          color: widget.color.withOpacity(0.8),
+                          color: widget.color.withAlpha((0.8 * 255).round()),
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),

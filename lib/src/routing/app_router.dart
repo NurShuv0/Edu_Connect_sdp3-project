@@ -4,7 +4,6 @@ import 'package:test_app/src/ui/dashboard/tab/search_tab.dart';
 import 'package:test_app/src/ui/search/nearby_search_page.dart';
 // Storage & Services
 import '../core/services/storage_service.dart';
-import '../core/services/auth_service.dart';
 import '../core/services/admin_service.dart';
 
 // Auth
@@ -18,7 +17,8 @@ import '../ui/dashboard/dashboard_page.dart';
 // Admin
 import '../ui/admin/admin_dashboard_page.dart';
 
-// Profile
+// Splash
+import '../ui/splash/splash_loading_screen.dart';
 
 // Tuition
 import '../ui/tuition/tuition_list.dart';
@@ -41,9 +41,7 @@ class AppRouter {
           future: storage.getToken(),
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              );
+              return const SplashLoadingScreen();
             }
 
             final token = snapshot.data;

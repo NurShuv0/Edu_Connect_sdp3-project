@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:test_app/src/core/services/auth_service.dart';
 import 'package:test_app/src/core/services/storage_service.dart';
+import 'package:test_app/src/config/api_config.dart';
 import 'dart:convert';
 
 class AdminUsersTable extends StatefulWidget {
@@ -58,7 +59,7 @@ class _AdminUsersTableState extends State<AdminUsersTable> {
     try {
       final token = await storageService.getToken();
       final response = await http.patch(
-        Uri.parse('http://localhost:5000/api/admin/users/$userId/suspend'),
+        Uri.parse('${ApiConfig.baseUrl}/api/admin/users/$userId/suspend'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -84,7 +85,7 @@ class _AdminUsersTableState extends State<AdminUsersTable> {
     try {
       final token = await storageService.getToken();
       final response = await http.patch(
-        Uri.parse('http://localhost:5000/api/admin/users/$userId/activate'),
+        Uri.parse('${ApiConfig.baseUrl}/api/admin/users/$userId/activate'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -112,28 +113,23 @@ class _AdminUsersTableState extends State<AdminUsersTable> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF1A2332).withOpacity(0.6),
-            const Color(0xFF0F1419).withOpacity(0.5),
-          ],
+          colors: [const Color(0x991A2332), const Color(0x801F1419)],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFF00D4FF).withOpacity(0.2),
-          width: 2,
-        ),
+        border: Border.all(color: const Color(0x3300D4FF), width: 2),
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: DataTable(
-          headingRowColor: MaterialStateColor.resolveWith(
-            (states) => const Color(0xFF1A2332).withOpacity(0.8),
+          headingRowColor: WidgetStateProperty.resolveWith(
+            (states) => const Color(0xCC1A2332),
           ),
-          dataRowColor: MaterialStateColor.resolveWith(
-            (states) => const Color(0xFF1A2332).withOpacity(0.3),
+          dataRowColor: WidgetStateProperty.resolveWith(
+            (states) => const Color(0x4D1A2332),
           ),
           headingRowHeight: 56,
-          dataRowHeight: 56,
+          dataRowMinHeight: 56,
+          dataRowMaxHeight: 56,
           columns: [
             DataColumn(
               label: _buildHeader('Name'),
@@ -182,7 +178,7 @@ class _AdminUsersTableState extends State<AdminUsersTable> {
                       Text(
                         _formatDate(user['createdAt']),
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.6),
+                          color: const Color(0x99FFFFFF),
                           fontSize: 12,
                         ),
                       ),
@@ -251,9 +247,9 @@ class _AdminUsersTableState extends State<AdminUsersTable> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withAlpha((0.2 * 255).round()),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withOpacity(0.4)),
+        border: Border.all(color: color.withAlpha((0.4 * 255).round())),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -278,9 +274,9 @@ class _AdminUsersTableState extends State<AdminUsersTable> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: const Color(0xFFFF1744).withOpacity(0.2),
+          color: const Color(0x33FF1744),
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: const Color(0xFFFF1744).withOpacity(0.4)),
+          border: Border.all(color: const Color(0x66FF1744)),
         ),
         child: const Text(
           'SUSPENDED',
@@ -295,9 +291,9 @@ class _AdminUsersTableState extends State<AdminUsersTable> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: const Color(0xFF76FF03).withOpacity(0.2),
+          color: const Color(0x3376FF03),
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: const Color(0xFF76FF03).withOpacity(0.4)),
+          border: Border.all(color: const Color(0x6676FF03)),
         ),
         child: const Text(
           'ACTIVE',
@@ -324,9 +320,9 @@ class _AdminUsersTableState extends State<AdminUsersTable> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.2),
+            color: color.withAlpha((0.2 * 255).round()),
             borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: color.withOpacity(0.4)),
+            border: Border.all(color: color.withAlpha((0.4 * 255).round())),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

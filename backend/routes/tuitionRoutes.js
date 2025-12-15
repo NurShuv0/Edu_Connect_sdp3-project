@@ -10,7 +10,14 @@ const {
   getApplicationsForPost,
   acceptApplication,
   closePost,
+  getMyPosts,
+  getApprovedTuitions,
 } = require("../controllers/tuitionController");
+
+const {
+  approveTuitionPost,
+  approveTuitionApplication,
+} = require("../controllers/adminController");
 
 const {
   protect,
@@ -18,22 +25,26 @@ const {
   requireVerifiedEmail,
 } = require("../middleware/authMiddleware");
 
-/* --------------------------------------------------
-   PUBLIC — GET ALL OPEN POSTS
--------------------------------------------------- */
-router.get("/", getAllPosts);
+const { getMyMatches } = require("../controllers/matchController");
 
 /* --------------------------------------------------
-  PUBLIC — GET NEARBY POSTS (server-side)
-  Example: /api/tuition-posts/nearby?lat=24.86&lng=67.01&radiusKm=10
+   PUBLIC — GET ALL OPEN POSTS
+   GET /api/tuition/posts
+-------------------------------------------------- */
+router.get("/posts", getAllPosts);
+
+/* --------------------------------------------------
+   PUBLIC — GET NEARBY POSTS (server-side)
+   GET /api/tuition/posts/nearby?lat=24.86&lng=67.01&radiusKm=10
  -------------------------------------------------- */
-router.get("/nearby", getNearbyPosts);
+router.get("/posts/nearby", getNearbyPosts);
 
 /* --------------------------------------------------
    STUDENT — CREATE POST
+   POST /api/tuition/posts
 -------------------------------------------------- */
 router.post(
-  "/",
+  "/posts",
   protect,
   requireVerifiedEmail,
   requireRole(["student"]),
@@ -42,9 +53,10 @@ router.post(
 
 /* --------------------------------------------------
    STUDENT — CLOSE POST
+   PUT /api/tuition/posts/close/:postId
 -------------------------------------------------- */
 router.put(
-  "/close/:postId",
+  "/posts/close/:postId",
   protect,
   requireRole(["student"]),
   closePost
@@ -52,9 +64,10 @@ router.put(
 
 /* --------------------------------------------------
    TEACHER — APPLY TO POST
+   POST /api/tuition/posts/:postId/apply
 -------------------------------------------------- */
 router.post(
-  "/apply/:postId",
+  "/posts/:postId/apply",
   protect,
   requireVerifiedEmail,
   requireRole(["teacher"]),
@@ -63,6 +76,7 @@ router.post(
 
 /* --------------------------------------------------
    TEACHER — GET MY APPLICATIONS
+   GET /api/tuition/applications/my
 -------------------------------------------------- */
 router.get(
   "/applications/my",
@@ -73,24 +87,80 @@ router.get(
 
 /* --------------------------------------------------
    STUDENT — GET APPLICATIONS FOR A POST
-   GET /api/tuition-posts/:postId/applications
+   GET /api/tuition/posts/:postId/applications
 -------------------------------------------------- */
 router.get(
-  "/:postId/applications",
+  "/posts/:postId/applications",
   protect,
-  requireRole(["student"]),
+  requireRole(["student", "admin"]),
   getApplicationsForPost
 );
 
 /* --------------------------------------------------
    STUDENT — ACCEPT APPLICATION
-   POST /api/tuition-posts/accept/:appId
+   POST /api/tuition/applications/accept/:appId
 -------------------------------------------------- */
 router.post(
-  "/accept/:appId",
+  "/applications/accept/:appId",
   protect,
   requireRole(["student"]),
   acceptApplication
+);
+
+/* --------------------------------------------------
+   TEACHER/STUDENT — GET MY MATCHES
+   GET /api/tuition/matches/my
+-------------------------------------------------- */
+router.get(
+  "/matches/my",
+  protect,
+  requireRole(["teacher", "student"]),
+  getMyMatches
+);
+
+/* --------------------------------------------------
+   STUDENT — GET MY POSTS
+   GET /api/tuition/my-posts
+-------------------------------------------------- */
+router.get(
+  "/my-posts",
+  protect,
+  requireRole(["student"]),
+  getMyPosts
+);
+
+/* --------------------------------------------------
+   TEACHER — GET APPROVED TUITIONS TO APPLY
+   GET /api/tuition/approved
+-------------------------------------------------- */
+router.get(
+  "/approved",
+  protect,
+  requireRole(["teacher"]),
+  getApprovedTuitions
+);
+
+/* --------------------------------------------------
+   ADMIN — APPROVE TUITION POST
+   PATCH /api/tuition/admin/posts/:postId/status
+-------------------------------------------------- */
+router.patch(
+  "/admin/posts/:postId/status",
+  protect,
+  requireRole(["admin"]),
+  approveTuitionPost
+);
+
+/* --------------------------------------------------
+   ADMIN — APPROVE APPLICATION (creates match)
+   PATCH /api/tuition/admin/applications/:appId/status
+   Expected response: { match: {...}, ... }
+-------------------------------------------------- */
+router.patch(
+  "/admin/applications/:appId/status",
+  protect,
+  requireRole(["admin"]),
+  approveTuitionApplication
 );
 
 module.exports = router;

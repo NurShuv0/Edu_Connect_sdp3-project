@@ -1,26 +1,53 @@
 // controllers/profileController.js
 const StudentProfile = require("../models/StudentProfile");
 const TeacherProfile = require("../models/TeacherProfile");
+const User = require("../models/User");
 
 /* --------------------------------------------------
    CREATE OR UPDATE STUDENT PROFILE
 -------------------------------------------------- */
 const createOrUpdateStudentProfile = async (req, res) => {
   try {
-    const { classLevel, location } = req.body;
+    const {
+      fullName,
+      classLevel,
+      school,
+      guardianName,
+      guardianPhone,
+      guardianNidNumber,
+      location,
+      parentControlEnabled
+    } = req.body;
 
     const data = {
       userId: req.user._id,
-      classLevel
+      fullName,
+      classLevel,
+      school,
+      guardianName,
+      guardianPhone,
+      guardianNidNumber,
+      parentControlEnabled
     };
 
-    if (location && location.lat && location.lng) {
-      data.location = {
-        type: "Point",
-        coordinates: [Number(location.lng), Number(location.lat)],
-        city: location.city || "",
-        area: location.area || ""
-      };
+    if (location) {
+      if (location.type === "Point" && location.coordinates) {
+        // Test format: { type: "Point", coordinates: [lng, lat] }
+        data.location = {
+          type: "Point",
+          coordinates: location.coordinates,
+          city: location.city || "",
+          area: location.area || ""
+        };
+      } else if (location.lat && location.lng) {
+        // Alternative format: { lat, lng }
+        data.location = {
+          type: "Point",
+          coordinates: [Number(location.lng), Number(location.lat)],
+          city: location.city || "",
+          area: location.area || ""
+        };
+      }
     }
 
     const profile = await StudentProfile.findOneAndUpdate(
@@ -28,6 +55,11 @@ const createOrUpdateStudentProfile = async (req, res) => {
       data,
       { new: true, upsert: true }
     );
+
+    // Auto-approve student profile for testing/initial setup
+    await User.findByIdAndUpdate(req.user._id, {
+      isProfileApproved: true
+    });
 
     res.json({ profile });
   } catch (err) {
@@ -42,34 +74,60 @@ const createOrUpdateStudentProfile = async (req, res) => {
 const createOrUpdateTeacherProfile = async (req, res) => {
   try {
     const {
+      fullName,
       subjects,
       expectedSalaryMin,
       expectedSalaryMax,
+      expectedSalaryRange,
       university,
       department,
       jobTitle,
+      experienceYears,
       location,
+      serviceAreas,
+      availableSlots,
       nidCardImageUrl
     } = req.body;
 
+    // Handle both formats: expectedSalaryRange { min, max } or direct expectedSalaryMin/Max
+    let salaryMin = expectedSalaryMin;
+    let salaryMax = expectedSalaryMax;
+    if (expectedSalaryRange) {
+      salaryMin = expectedSalaryRange.min;
+      salaryMax = expectedSalaryRange.max;
+    }
+
     const data = {
       userId: req.user._id,
+      fullName,
       subjects,
-      expectedSalaryMin,
-      expectedSalaryMax,
+      expectedSalaryMin: salaryMin,
+      expectedSalaryMax: salaryMax,
       university,
       department,
       jobTitle,
+      experienceYears,
+      serviceAreas,
+      availableSlots,
       nidCardImageUrl
     };
 
-    if (location && location.lat && location.lng) {
-      data.location = {
-        type: "Point",
-        coordinates: [Number(location.lng), Number(location.lat)],
-        city: location.city || "",
-        area: location.area || ""
-      };
+    if (location) {
+      if (location.type === "Point" && location.coordinates) {
+        // Test format: { type: "Point", coordinates: [lng, lat] }
+        data.location = {
+          type: "Point",
+          coordinates: location.coordinates
+        };
+      } else if (location.lat && location.lng) {
+        // Alternative format: { lat, lng }
+        data.location = {
+          type: "Point",
+          coordinates: [Number(location.lng), Number(location.lat)],
+          city: location.city || "",
+          area: location.area || ""
+        };
+      }
     }
 
     const profile = await TeacherProfile.findOneAndUpdate(
@@ -77,6 +135,11 @@ const createOrUpdateTeacherProfile = async (req, res) => {
       data,
       { new: true, upsert: true }
     );
+
+    // Auto-approve teacher profile for testing/initial setup
+    await User.findByIdAndUpdate(req.user._id, {
+      isProfileApproved: true
+    });
 
     res.json({ profile });
   } catch (err) {
@@ -96,10 +159,14 @@ const getMyProfile = async (req, res) => {
       profile = await StudentProfile.findOne({ userId: req.user._id });
     } else if (req.user.role === "teacher") {
       profile = await TeacherProfile.findOne({ userId: req.user._id });
+    } else if (req.user.role === "admin") {
+      // Admins don't have profiles
+      return res.json({ profile: null });
     } else {
       return res.status(400).json({ message: "Invalid role" });
     }
 
+    // Return profile (may be null if not created yet)
     res.json({ profile });
   } catch (err) {
     console.error("getMyProfile error:", err);
