@@ -16,6 +16,11 @@ class AuthService {
   String? get name => _user?.name;
   bool get isVerified => _user?.isEmailVerified ?? false;
 
+  /// Get the authentication token from storage
+  Future<String?> getToken() async {
+    return await storage.getToken();
+  }
+
   // -------------------------------------------------------------
   // LOGIN
   // -------------------------------------------------------------

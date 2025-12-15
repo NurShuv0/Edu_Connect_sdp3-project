@@ -4,17 +4,27 @@ const Match = require("../models/Match");
 
 /* --------------------------------------------------
    CREATE TUITION POST (Student)
+   Only students with approved profiles can create posts
 -------------------------------------------------- */
 exports.createPost = async (req, res) => {
   try {
+    // Check if student profile is approved
+    if (!req.user.isProfileApproved) {
+      return res.status(403).json({
+        message: "Profile not approved",
+        details: "Admin approval required to post tuitions"
+      });
+    }
+
     const {
       title,
-      details,
+      description,
       classLevel,
       subjects,
-      salaryMin,
-      salaryMax,
-      location
+      salaryRange,
+      location,
+      areaName,
+      schedulePreferences
     } = req.body;
 
     if (!title || !classLevel) {
@@ -24,19 +34,20 @@ exports.createPost = async (req, res) => {
     const post = await TuitionPost.create({
       studentId: req.user._id,
       title,
-      details,
+      details: description,
       classLevel,
       subjects,
-      salaryMin,
-      salaryMax,
+      salaryMin: salaryRange?.min || 0,
+      salaryMax: salaryRange?.max || 0,
       location: location
         ? {
             type: "Point",
-            coordinates: [location.lng, location.lat],
-            city: location.city || "",
-            area: location.area || ""
+            coordinates: [location.coordinates[0], location.coordinates[1]],
+            city: areaName || "",
+            area: areaName || ""
           }
-        : undefined
+        : undefined,
+      status: "pending_admin_review"
     });
 
     res.status(201).json({ post });
@@ -48,10 +59,14 @@ exports.createPost = async (req, res) => {
 
 /* --------------------------------------------------
    GET APPROVED TUITION POSTS (Public)
+   Only shows approved posts
 -------------------------------------------------- */
 exports.getAllPosts = async (req, res) => {
   try {
-    const posts = await TuitionPost.find({ isClosed: false })
+    const posts = await TuitionPost.find({
+      isClosed: false,
+      status: "approved"
+    })
       .sort({ createdAt: -1 });
 
     res.json({ posts });
@@ -149,6 +164,8 @@ exports.getNearbyPosts = async (req, res) => {
           $maxDistance: radiusMeters
         }
       },
+      isClosed: false,
+      status: "approved",
       ...query
     })
       .skip(skip)
@@ -165,9 +182,18 @@ exports.getNearbyPosts = async (req, res) => {
 
 /* --------------------------------------------------
    APPLY TO TUITION (Teacher)
+   Only teachers with approved profiles can apply
 -------------------------------------------------- */
 exports.applyToPost = async (req, res) => {
   try {
+    // Check if teacher profile is approved
+    if (!req.user.isProfileApproved) {
+      return res.status(403).json({
+        message: "Profile not approved",
+        details: "Admin approval required to apply to tuitions"
+      });
+    }
+
     const { postId } = req.params;
 
     const post = await TuitionPost.findById(postId);
@@ -187,7 +213,7 @@ exports.applyToPost = async (req, res) => {
       teacherId: req.user._id
     });
 
-    res.json({ message: "Applied successfully", application: app });
+    res.status(201).json({ application: app });
   } catch (err) {
     console.error("applyToPost error:", err);
     res.status(500).json({ message: "Server error" });
@@ -220,10 +246,16 @@ exports.getApplicationsForPost = async (req, res) => {
   try {
     const { postId } = req.params;
 
-    const post = await TuitionPost.findOne({
-      _id: postId,
-      studentId: req.user._id
-    });
+    // Allow admins to view applications for any post, or students to view their own
+    let post;
+    if (req.user.role === "admin") {
+      post = await TuitionPost.findOne({ _id: postId });
+    } else {
+      post = await TuitionPost.findOne({
+        _id: postId,
+        studentId: req.user._id
+      });
+    }
 
     if (!post)
       return res.status(403).json({ message: "Not authorized" });
@@ -317,6 +349,42 @@ exports.closePost = async (req, res) => {
     res.json({ message: "Post closed" });
   } catch (err) {
     console.error("closePost error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/* --------------------------------------------------
+   GET MY POSTS (Student)
+   GET /api/tuition/my-posts
+-------------------------------------------------- */
+exports.getMyPosts = async (req, res) => {
+  try {
+    const posts = await TuitionPost.find({ studentId: req.user._id })
+      .sort({ createdAt: -1 });
+
+    res.json({ posts });
+  } catch (err) {
+    console.error("getMyPosts error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/* --------------------------------------------------
+   GET APPROVED TUITIONS (for Teachers to apply)
+   GET /api/tuition/approved
+-------------------------------------------------- */
+exports.getApprovedTuitions = async (req, res) => {
+  try {
+    const posts = await TuitionPost.find({ 
+      status: "approved",
+      isClosed: false 
+    })
+      .populate("studentId", "name email phone")
+      .sort({ createdAt: -1 });
+
+    res.json({ posts });
+  } catch (err) {
+    console.error("getApprovedTuitions error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };

@@ -47,49 +47,24 @@ class _TuitionTabState extends State<TuitionTab> {
   // -----------------------------
   @override
   Widget build(BuildContext context) {
-    final isStudent = auth.role == "student";
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Tuition Posts"),
-        elevation: 0,
-        centerTitle: true,
-      ),
-
-      floatingActionButton: isStudent
-          ? FloatingActionButton.extended(
-              backgroundColor: Colors.indigo,
-              foregroundColor: Colors.white,
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const TuitionCreatePage()),
-                ).then((_) => loadPosts());
+    final isStu = auth.role == "student";
+    return loading
+        ? _shimmer()
+        : posts.isEmpty
+        ? _emptyState(context)
+        : RefreshIndicator(
+            onRefresh: loadPosts,
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: posts.length + (isStu ? 1 : 0),
+              itemBuilder: (_, i) {
+                if (isStu && i == 0) {
+                  return _postTuitionButton(context);
+                }
+                return _tuitionCard(posts[isStu ? i - 1 : i]);
               },
-              label: const Text(
-                "Create Tuition",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              icon: const Icon(Icons.add),
-            )
-          : null,
-
-      body: loading
-          ? _shimmer()
-          : posts.isEmpty
-          ? _emptyState()
-          : RefreshIndicator(
-              onRefresh: loadPosts,
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: posts.length,
-                itemBuilder: (_, i) => _tuitionCard(posts[i]),
-              ),
             ),
-    );
+          );
   }
 
   // -----------------------------
@@ -182,7 +157,11 @@ class _TuitionTabState extends State<TuitionTab> {
         ),
         child: const Text(
           "View Details",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
         ),
       ),
     );
@@ -191,11 +170,67 @@ class _TuitionTabState extends State<TuitionTab> {
   // -----------------------------
   // EMPTY STATE
   // -----------------------------
-  Widget _emptyState() {
+  Widget _emptyState(BuildContext context) {
+    final isStu = auth.role == "student";
     return Center(
-      child: Text(
-        "No Tuition posts yet.",
-        style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            "No Tuition posts yet.",
+            style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+          ),
+          if (isStu) ...[
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const TuitionCreatePage()),
+                ).then((_) => loadPosts());
+              },
+              icon: const Icon(Icons.add),
+              label: const Text("Create Your First Tuition"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF7C3AED),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // POST TUITION BUTTON
+  // -----------------------------
+  Widget _postTuitionButton(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      child: ElevatedButton.icon(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const TuitionCreatePage()),
+          ).then((_) => loadPosts());
+        },
+        icon: const Icon(Icons.add_circle, size: 24),
+        label: const Text(
+          "Post a New Tuition",
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF7C3AED),
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       ),
     );
   }

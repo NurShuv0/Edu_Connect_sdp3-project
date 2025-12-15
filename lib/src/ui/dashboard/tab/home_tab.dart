@@ -6,6 +6,7 @@ import '../../../core/services/tuition_service.dart';
 import '../../../core/widgets/app_avatar.dart';
 import '../widgets/notice_board.dart';
 import '../widgets/top_teachers.dart';
+import '../../tuition/tuition_create_page.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -20,11 +21,19 @@ class _HomeTabState extends State<HomeTab> {
 
   bool loading = true;
   List<Map<String, dynamic>> featured = [];
+  late ScrollController _featuredScrollController;
 
   @override
   void initState() {
     super.initState();
+    _featuredScrollController = ScrollController();
     load();
+  }
+
+  @override
+  void dispose() {
+    _featuredScrollController.dispose();
+    super.dispose();
   }
 
   Future<void> load() async {
@@ -36,55 +45,92 @@ class _HomeTabState extends State<HomeTab> {
     }
 
     setState(() => loading = false);
+    // Start auto-scroll after data loads
+    Future.delayed(const Duration(milliseconds: 500), _startAutoScroll);
+  }
+
+  void _startAutoScroll() {
+    if (!mounted || featured.isEmpty) return;
+
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      _animateScroll();
+    });
+  }
+
+  void _animateScroll() async {
+    if (!mounted || featured.isEmpty) return;
+
+    final maxScroll = _featuredScrollController.position.maxScrollExtent;
+    final currentScroll = _featuredScrollController.offset;
+
+    // If we're at the end, scroll back to beginning
+    if (currentScroll >= maxScroll) {
+      await _featuredScrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      // Scroll to next item
+      await _featuredScrollController.animateTo(
+        currentScroll + 330, // Card width (300) + margin (18) + padding (12)
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.easeInOut,
+      );
+    }
+
+    // Continue scrolling
+    if (mounted) {
+      Future.delayed(const Duration(seconds: 3), _animateScroll);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final user = auth.user;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6F7FB),
-      body: SafeArea(
-        child: loading
-            ? const Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _header(user?.name ?? "Welcome!"),
+    return SafeArea(
+      child: loading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _header(user?.name ?? "Welcome!"),
 
-                    const SizedBox(height: 24),
-                    _quickActions(context),
+                  const SizedBox(height: 24),
+                  _quickActions(context),
 
-                    const SizedBox(height: 32),
-                    const NoticeBoard(),
+                  const SizedBox(height: 32),
+                  const NoticeBoard(),
 
-                    const SizedBox(height: 32),
-                    const TopTeachers(),
+                  const SizedBox(height: 32),
+                  const TopTeachers(),
 
-                    const SizedBox(height: 32),
-                    const Text(
-                      "Featured Tuitions",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
+                  const SizedBox(height: 32),
+                  const Text(
+                    "Featured Tuitions",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 14),
 
-                    if (featured.isEmpty)
-                      _emptyPlaceholder()
-                    else
-                      Column(
+                  if (featured.isEmpty)
+                    _emptyPlaceholder()
+                  else
+                    SingleChildScrollView(
+                      controller: _featuredScrollController,
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
                         children: featured
                             .map((p) => _tuitionCard(context, p))
                             .toList(),
                       ),
-                  ],
-                ),
+                    ),
+                ],
               ),
-      ),
+            ),
     );
   }
 
@@ -125,27 +171,57 @@ class _HomeTabState extends State<HomeTab> {
   // QUICK ACTION BUTTONS
   // -------------------------------------------------------------
   Widget _quickActions(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _actionButton(
-            icon: Icons.search,
-            label: "Search",
-            color: Colors.indigo,
-            onTap: () => Navigator.pushNamed(context, "/search"),
-          ),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: _actionButton(
-            icon: Icons.book,
-            label: "My Tuitions",
-            color: Colors.green,
-            onTap: () => Navigator.pushNamed(context, "/tuition/teacher"),
-          ),
-        ),
-      ],
-    );
+    final isStu = auth.role == "student";
+    return isStu
+        ? Row(
+            children: [
+              Expanded(
+                child: _actionButton(
+                  icon: Icons.add_circle,
+                  label: "Post Tuition",
+                  color: const Color(0xFF7C3AED),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const TuitionCreatePage(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: _actionButton(
+                  icon: Icons.search,
+                  label: "Search",
+                  color: Colors.indigo,
+                  onTap: () => Navigator.pushNamed(context, "/search"),
+                ),
+              ),
+            ],
+          )
+        : Row(
+            children: [
+              Expanded(
+                child: _actionButton(
+                  icon: Icons.search,
+                  label: "Search",
+                  color: Colors.indigo,
+                  onTap: () => Navigator.pushNamed(context, "/search"),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: _actionButton(
+                  icon: Icons.book,
+                  label: "My Applications",
+                  color: Colors.green,
+                  onTap: () => Navigator.pushNamed(context, "/tuition/teacher"),
+                ),
+              ),
+            ],
+          );
   }
 
   Widget _actionButton({
@@ -197,7 +273,8 @@ class _HomeTabState extends State<HomeTab> {
     final city = p["location"]?["city"] ?? "Unknown";
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      width: 300,
+      margin: const EdgeInsets.only(right: 12),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -211,11 +288,14 @@ class _HomeTabState extends State<HomeTab> {
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             subjects,
             style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 8),
           Text(
@@ -226,6 +306,7 @@ class _HomeTabState extends State<HomeTab> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.indigo,
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),

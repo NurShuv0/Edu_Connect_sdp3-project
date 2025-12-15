@@ -13,7 +13,10 @@ const UserSchema = new mongoose.Schema(
 
     phone: { type: String, default: "" },
 
-    password: { type: String, required: true },
+    password: { type: String, required: false },
+
+    // legacy hashed password field used by tests or older imports
+    passwordHash: { type: String, default: null },
 
     role: {
       type: String,
@@ -27,7 +30,26 @@ const UserSchema = new mongoose.Schema(
     emailOtpExpiresAt: { type: Date, default: null },
 
     // Admin-level safety
-    isSuspended: { type: Boolean, default: false }
+    isSuspended: { type: Boolean, default: false },
+
+    // Profile approval system
+    isProfileApproved: { type: Boolean, default: false },
+    approvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null
+    },
+    approvalDate: { type: Date, default: null },
+
+    // Ban system
+    isBanned: { type: Boolean, default: false },
+    banReason: { type: String, default: null },
+    bannedDate: { type: Date, default: null },
+    bannedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null
+    }
   },
   { timestamps: true }
 );

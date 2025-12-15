@@ -14,11 +14,19 @@ class _NoticeBoardState extends State<NoticeBoard> {
   List<Map<String, dynamic>> announcements = [];
   bool loading = true;
   String? error;
+  late ScrollController _scrollController;
 
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController();
     _loadAnnouncements();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadAnnouncements() async {
@@ -29,12 +37,51 @@ class _NoticeBoardState extends State<NoticeBoard> {
         announcements = data;
         loading = false;
       });
+      // Start auto-scroll after data loads
+      Future.delayed(const Duration(milliseconds: 500), _startAutoScroll);
     } catch (e) {
       setState(() {
         error = "Failed to load announcements";
         loading = false;
       });
       print("NoticeBoard error: $e");
+    }
+  }
+
+  void _startAutoScroll() {
+    if (!mounted || announcements.isEmpty) return;
+
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      _animateScroll();
+    });
+  }
+
+  void _animateScroll() async {
+    if (!mounted || announcements.isEmpty) return;
+
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.offset;
+
+    // If we're at the end, scroll back to beginning
+    if (currentScroll >= maxScroll) {
+      await _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      // Scroll to next item
+      await _scrollController.animateTo(
+        currentScroll + 310, // Card width (280) + margin (12) + padding (18)
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.easeInOut,
+      );
+    }
+
+    // Continue scrolling
+    if (mounted) {
+      Future.delayed(const Duration(seconds: 3), _animateScroll);
     }
   }
 
@@ -55,12 +102,54 @@ class _NoticeBoardState extends State<NoticeBoard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "📢 Notice Board",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              "📢 Notice Board",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+            PopupMenuButton<String>(
+              itemBuilder: (_) => <PopupMenuEntry<String>>[
+                const PopupMenuItem<String>(
+                  value: 'refresh',
+                  child: Row(
+                    children: [
+                      Icon(Icons.refresh, size: 20),
+                      SizedBox(width: 12),
+                      Text('Refresh'),
+                    ],
+                  ),
+                ),
+                const PopupMenuDivider(),
+                const PopupMenuItem<String>(
+                  value: 'viewall',
+                  child: Row(
+                    children: [
+                      Icon(Icons.view_list, size: 20),
+                      SizedBox(width: 12),
+                      Text('View All'),
+                    ],
+                  ),
+                ),
+              ],
+              onSelected: (value) {
+                if (value == 'refresh') {
+                  _loadAnnouncements();
+                } else if (value == 'viewall') {
+                  // Navigate to full announcements view
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('View all announcements')),
+                  );
+                }
+              },
+              icon: const Icon(Icons.more_vert, size: 24),
+            ),
+          ],
         ),
         const SizedBox(height: 14),
         SingleChildScrollView(
+          controller: _scrollController,
           scrollDirection: Axis.horizontal,
           child: Row(
             children: announcements

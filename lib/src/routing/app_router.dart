@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:test_app/src/ui/dashboard/tab/search_tab.dart';
 import 'package:test_app/src/ui/search/nearby_search_page.dart';
-// Storage
+// Storage & Services
 import '../core/services/storage_service.dart';
+import '../core/services/admin_service.dart';
 
 // Auth
 import '../ui/auth/login_page.dart';
@@ -13,7 +14,11 @@ import '../ui/auth/otp_page.dart';
 // Dashboard
 import '../ui/dashboard/dashboard_page.dart';
 
-// Profile
+// Admin
+import '../ui/admin/admin_dashboard_page.dart';
+
+// Splash
+import '../ui/splash/splash_loading_screen.dart';
 
 // Tuition
 import '../ui/tuition/tuition_list.dart';
@@ -25,9 +30,10 @@ import '../ui/chat/chat_room_page.dart';
 class AppRouter {
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final storage = GetIt.instance<StorageService>();
+    final adminService = GetIt.instance<AdminService>();
 
     // ===========================================================
-    // ROOT "/" — login state check ONLY here
+    // ROOT "/" — login state check + ROLE-BASED ROUTING
     // ===========================================================
     if (settings.name == '/') {
       return MaterialPageRoute(
@@ -35,9 +41,7 @@ class AppRouter {
           future: storage.getToken(),
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              );
+              return const SplashLoadingScreen();
             }
 
             final token = snapshot.data;
@@ -45,7 +49,13 @@ class AppRouter {
             // NOT LOGGED IN → LOGIN PAGE
             if (token == null) return const LoginPage();
 
-            // LOGGED IN → DASHBOARD
+            // LOGGED IN → CHECK ROLE
+            // If admin → go to admin dashboard
+            // Otherwise → go to regular dashboard
+            if (adminService.isAdmin()) {
+              return const AdminDashboardPage();
+            }
+
             return const DashboardPage();
           },
         ),
@@ -73,6 +83,10 @@ class AppRouter {
           // ---------------- DASHBOARD ----------------
           case '/dashboard':
             return const DashboardPage();
+
+          case '/admin':
+          case '/admin/dashboard':
+            return const AdminDashboardPage();
 
           // ---------------- PROFILE ----------------
 

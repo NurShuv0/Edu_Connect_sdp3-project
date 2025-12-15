@@ -4,6 +4,7 @@ const StudentProfile = require("../models/StudentProfile");
 /**
  * Block *student* actions if parentControlEnabled = true
  * Teachers / Admin are not affected by this middleware.
+ * NOTE: Chat is allowed even with parent control enabled because it's necessary for tutoring
  */
 const enforceParentControlForStudent = async (req, res, next) => {
   try {
@@ -13,6 +14,11 @@ const enforceParentControlForStudent = async (req, res, next) => {
 
     // Only students are affected
     if (req.user.role !== "student") {
+      return next();
+    }
+
+    // Allow chat even with parent control enabled
+    if (req.path.includes("/rooms")) {
       return next();
     }
 

@@ -151,6 +151,7 @@ class _TuitionDetailsPageState extends State<TuitionDetailsPage> {
                       onPressed: apply,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.indigo,
+                        foregroundColor: Colors.white,
                         minimumSize: const Size(double.infinity, 50),
                       ),
                       child: const Text("Apply for this Tuition"),
@@ -190,7 +191,10 @@ class _TuitionDetailsPageState extends State<TuitionDetailsPage> {
         ),
         trailing: ElevatedButton(
           onPressed: () => acceptApplication(app["_id"]),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.white,
+          ),
           child: const Text("Accept"),
         ),
       ),

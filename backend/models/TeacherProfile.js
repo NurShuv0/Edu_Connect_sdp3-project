@@ -10,6 +10,7 @@ const TeacherProfileSchema = new mongoose.Schema(
       unique: true
     },
 
+    fullName: { type: String, default: "" },
     university: { type: String, default: "" },
     department: { type: String, default: "" },
     subjects: { type: [String], default: [] },

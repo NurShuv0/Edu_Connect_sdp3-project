@@ -7,7 +7,8 @@ const Match = require("../models/Match");
 -------------------------------------------------- */
 const requestDemo = async (req, res) => {
   try {
-    const { matchId } = req.body;
+    const { matchId } = req.params;
+    const { startTime, endTime, note } = req.body;
 
     const match = await Match.findById(matchId);
     if (!match) return res.status(404).json({ message: "Match not found" });
@@ -20,10 +21,13 @@ const requestDemo = async (req, res) => {
       matchId,
       studentId: match.studentId,
       teacherId: match.teacherId,
-      status: "pending"
+      status: "requested",
+      startTime: new Date(startTime),
+      endTime: new Date(endTime),
+      note
     });
 
-    res.status(201).json({ session });
+    res.status(201).json({ demo: session });
   } catch (err) {
     console.error("requestDemo error:", err);
     res.status(500).json({ message: "Server error" });
@@ -67,7 +71,7 @@ const updateDemoStatus = async (req, res) => {
 
     if (!session) return res.status(404).json({ message: "Demo session not found" });
 
-    res.json({ session });
+    res.json({ demo: session });
   } catch (err) {
     console.error("updateDemoStatus error:", err);
     res.status(500).json({ message: "Server error" });

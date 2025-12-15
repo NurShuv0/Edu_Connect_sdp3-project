@@ -121,10 +121,10 @@ const getRoomMessages = async (req, res) => {
 const sendMessageRest = async (req, res) => {
   try {
     const { roomId } = req.params;
-    const { content } = req.body;
+    const { text } = req.body;
 
-    if (!content || !content.trim()) {
-      return res.status(400).json({ message: "content is required" });
+    if (!text || !text.trim()) {
+      return res.status(400).json({ message: "text is required" });
     }
 
     const room = await ChatRoom.findById(roomId);
@@ -138,14 +138,14 @@ const sendMessageRest = async (req, res) => {
     const message = await ChatMessage.create({
       roomId,
       senderId: req.user._id,
-      content: content.trim()
+      content: text.trim()
     });
 
     // keep room updated
     room.lastMessageAt = new Date();
     await room.save();
 
-    return res.status(201).json({ message });
+    return res.status(201).json({ data: { text: message.content, ...message.toObject() } });
   } catch (err) {
     console.error("sendMessageRest error:", err);
     if (err.statusCode) {

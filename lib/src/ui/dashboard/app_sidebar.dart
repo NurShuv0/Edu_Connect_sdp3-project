@@ -116,16 +116,23 @@ class AppSidebar extends StatelessWidget {
           _sidebarItem(
             context,
             index: -1,
-            label: 'Notifications',
-            icon: Icons.notifications_rounded,
-            onTap: () => _navigateTo(context, -1),
+            label: 'About Us',
+            icon: Icons.info_rounded,
+            onTap: () => _showAboutUs(context),
           ),
           _sidebarItem(
             context,
             index: -2,
+            label: 'Notifications',
+            icon: Icons.notifications_rounded,
+            onTap: () => _navigateTo(context, -2),
+          ),
+          _sidebarItem(
+            context,
+            index: -3,
             label: 'Reviews & Ratings',
             icon: Icons.star_rounded,
-            onTap: () => _navigateTo(context, -2),
+            onTap: () => _navigateTo(context, -3),
           ),
 
           const Divider(indent: 20, endIndent: 20),
@@ -133,31 +140,31 @@ class AppSidebar extends StatelessWidget {
           // Bottom Menu
           _sidebarItem(
             context,
-            index: -3,
+            index: -4,
             label: 'Settings',
             icon: Icons.settings_rounded,
-            onTap: () => _navigateTo(context, -3),
-          ),
-          _sidebarItem(
-            context,
-            index: -4,
-            label: 'Help & Support',
-            icon: Icons.help_rounded,
             onTap: () => _navigateTo(context, -4),
           ),
           _sidebarItem(
             context,
             index: -5,
+            label: 'Help & Support',
+            icon: Icons.help_rounded,
+            onTap: () => _navigateTo(context, -5),
+          ),
+          _sidebarItem(
+            context,
+            index: -6,
             label: 'Contact Us',
             icon: Icons.mail_rounded,
-            onTap: () => _navigateTo(context, -5),
+            onTap: () => _navigateTo(context, -6),
           ),
 
           const Divider(indent: 20, endIndent: 20),
 
           _sidebarItem(
             context,
-            index: -6,
+            index: -7,
             label: 'Logout',
             icon: Icons.logout_rounded,
             onTap: () => _logout(context),
@@ -203,61 +210,168 @@ class AppSidebar extends StatelessWidget {
   }
 
   void _navigateTo(BuildContext context, int index) {
-    Navigator.pop(context);
     if (index >= 0) {
+      Navigator.pop(context);
       onTabChanged(index);
-    } else if (index == -1) {
-      // Notifications
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Notifications feature coming soon')),
-      );
     } else if (index == -2) {
-      // Reviews & Ratings
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Reviews & Ratings coming soon')),
-      );
+      // Notifications
+      Navigator.pop(context);
+      Future.delayed(const Duration(milliseconds: 200), () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Notifications feature coming soon')),
+        );
+      });
     } else if (index == -3) {
-      // Settings
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Settings coming soon')));
+      // Reviews & Ratings
+      Navigator.pop(context);
+      Future.delayed(const Duration(milliseconds: 200), () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reviews & Ratings coming soon')),
+        );
+      });
     } else if (index == -4) {
-      // Help & Support
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Help & Support coming soon')),
-      );
+      // Settings
+      Navigator.pop(context);
+      Future.delayed(const Duration(milliseconds: 200), () {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Settings coming soon')));
+      });
     } else if (index == -5) {
+      // Help & Support
+      Navigator.pop(context);
+      Future.delayed(const Duration(milliseconds: 200), () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Help & Support coming soon')),
+        );
+      });
+    } else if (index == -6) {
       // Contact Us
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Contact us at support@tutorapp.com')),
-      );
+      Navigator.pop(context);
+      Future.delayed(const Duration(milliseconds: 200), () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Contact us at support@tutorapp.com')),
+        );
+      });
     }
   }
 
-  void _logout(BuildContext context) {
+  void _showAboutUs(BuildContext context) {
     Navigator.pop(context);
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+    Future.delayed(const Duration(milliseconds: 200), () {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('About EduConnect'),
+          content: const SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'EduConnect',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.indigo,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'Your trusted platform for connecting students with qualified tutors.',
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'Version: 1.0.0',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Developed with ❤️ for education',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
           ),
-          TextButton(
-            onPressed: () async {
-              final auth = GetIt.instance<AuthService>();
-              await auth.logout();
-              if (context.mounted) {
-                Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
-              }
-            },
-            child: const Text('Logout', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  void _logout(BuildContext context) {
+    // Close drawer first
+    Navigator.pop(context);
+
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!context.mounted) return;
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Logout'),
+          content: const Text('Are you sure you want to logout?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
+                }
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                try {
+                  final auth = GetIt.instance<AuthService>();
+
+                  // Perform logout
+                  await auth.logout();
+
+                  // Close the confirmation dialog
+                  if (dialogContext.mounted) {
+                    Navigator.pop(dialogContext);
+                  }
+
+                  // Small delay to ensure everything is cleared
+                  await Future.delayed(const Duration(milliseconds: 200));
+
+                  // Navigate to login page and clear navigation stack
+                  if (context.mounted) {
+                    Navigator.of(
+                      context,
+                      rootNavigator: true,
+                    ).pushNamedAndRemoveUntil(
+                      '/login',
+                      (route) => false, // Remove all previous routes
+                    );
+                  }
+                } catch (e) {
+                  print("Logout error: $e");
+                  // Close dialog on error
+                  if (dialogContext.mounted) {
+                    Navigator.pop(dialogContext);
+                  }
+                  // Still try to navigate
+                  if (context.mounted) {
+                    Navigator.of(
+                      context,
+                      rootNavigator: true,
+                    ).pushNamedAndRemoveUntil('/login', (route) => false);
+                  }
+                }
+              },
+              child: const Text('Logout', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      );
+    });
   }
 }

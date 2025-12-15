@@ -121,18 +121,36 @@ class TuitionService {
 
   /// -----------------------------------------------------------
   /// STUDENT: GET APPLICATIONS FOR A SPECIFIC POST
-  /// GET /tuition-posts/:postId/applications
+  /// GET /tuition/applications/:postId
   /// -----------------------------------------------------------
   Future<Map<String, dynamic>> getApplications(String postId) async {
-    return await api.get("/tuition-posts/$postId/applications");
+    return await api.get("/tuition/posts/$postId/applications");
   }
 
   /// -----------------------------------------------------------
   /// STUDENT: ACCEPT APPLICATION
-  /// POST /tuition-posts/accept/:appId
+  /// POST /tuition/applications/accept/:appId
   /// Returns → { matchId }
   /// -----------------------------------------------------------
   Future<Map<String, dynamic>> acceptApplication(String appId) async {
-    return await api.post("/tuition-posts/accept/$appId");
+    return await api.post(ApiPaths.acceptApplication(appId));
+  }
+
+  /// -----------------------------------------------------------
+  /// STUDENT: GET MY POSTS
+  /// GET /tuition/my-posts
+  /// -----------------------------------------------------------
+  Future<List<dynamic>> getMyPosts() async {
+    final res = await api.get("/tuition/my-posts");
+    return res['posts'] ?? [];
+  }
+
+  /// -----------------------------------------------------------
+  /// TEACHER: GET APPROVED TUITIONS
+  /// GET /tuition/approved
+  /// -----------------------------------------------------------
+  Future<List<dynamic>> getApprovedTuitions() async {
+    final res = await api.get("/tuition/approved");
+    return res['posts'] ?? [];
   }
 }

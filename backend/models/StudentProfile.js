@@ -10,7 +10,14 @@ const StudentProfileSchema = new mongoose.Schema(
       unique: true
     },
 
+    fullName: { type: String, default: "" },
     classLevel: { type: String, default: "" },
+    school: { type: String, default: "" },
+
+    // Guardian Information
+    guardianName: { type: String, default: "" },
+    guardianPhone: { type: String, default: "" },
+    guardianNidNumber: { type: String, default: "" },
 
     location: {
       type: {

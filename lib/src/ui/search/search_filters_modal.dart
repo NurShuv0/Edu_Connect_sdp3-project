@@ -218,6 +218,7 @@ class _SearchFiltersModalState extends State<SearchFiltersModal> {
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.indigo,
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),

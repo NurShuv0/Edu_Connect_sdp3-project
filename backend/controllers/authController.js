@@ -6,7 +6,7 @@ const { sendEmail } = require("../config/email"); // fixed path
 // Generate JWT
 function generateToken(user) {
   return jwt.sign(
-    { id: user._id, role: user.role },
+    { id: user._id, role: user.role, isProfileApproved: user.isProfileApproved },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
@@ -21,6 +21,7 @@ function serializeUser(user) {
     phone: user.phone || "",
     role: user.role,
     isEmailVerified: user.isEmailVerified,
+    isProfileApproved: user.isProfileApproved,
     isSuspended: user.isSuspended
   };
 }
@@ -52,7 +53,8 @@ const register = async (req, res) => {
       phone,
       password: hash,
       role,
-      isEmailVerified: false
+      isEmailVerified: false,
+      isProfileApproved: false
     });
 
     const token = generateToken(user);
@@ -78,7 +80,8 @@ const login = async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) return res.status(400).json({ message: "Invalid credentials" });
 
-    const match = await bcrypt.compare(password, user.password);
+    const storedHash = user.password || user.passwordHash || "";
+    const match = await bcrypt.compare(password, storedHash);
     if (!match) return res.status(400).json({ message: "Invalid credentials" });
 
     if (user.isSuspended) {
