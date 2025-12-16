@@ -18,9 +18,12 @@ exports.createPost = async (req, res) => {
 
     const {
       title,
+      details,
       description,
       classLevel,
       subjects,
+      salaryMin,
+      salaryMax,
       salaryRange,
       location,
       areaName,
@@ -31,22 +34,43 @@ exports.createPost = async (req, res) => {
       return res.status(400).json({ message: "Missing fields" });
     }
 
+    // Handle location format: Flutter sends {lat, lng, city, area}
+    let locationData = undefined;
+    if (location) {
+      // Handle two possible formats:
+      // 1. Direct coordinates: {lat, lng, city, area}
+      if (location.lat !== undefined && location.lng !== undefined) {
+        locationData = {
+          type: "Point",
+          coordinates: [Number(location.lng), Number(location.lat)],
+          city: location.city || areaName || "",
+          area: location.area || areaName || ""
+        };
+      }
+      // 2. GeoJSON format: {type: "Point", coordinates: [lng, lat]}
+      else if (location.type === "Point" && location.coordinates && Array.isArray(location.coordinates)) {
+        locationData = {
+          type: "Point",
+          coordinates: [Number(location.coordinates[0]), Number(location.coordinates[1])],
+          city: location.city || areaName || "",
+          area: location.area || areaName || ""
+        };
+      }
+    }
+
+    // Handle salary range format
+    let finalSalaryMin = salaryMin || salaryRange?.min || 0;
+    let finalSalaryMax = salaryMax || salaryRange?.max || 0;
+
     const post = await TuitionPost.create({
       studentId: req.user._id,
       title,
-      details: description,
+      details: details || description || "",
       classLevel,
-      subjects,
-      salaryMin: salaryRange?.min || 0,
-      salaryMax: salaryRange?.max || 0,
-      location: location
-        ? {
-            type: "Point",
-            coordinates: [location.coordinates[0], location.coordinates[1]],
-            city: areaName || "",
-            area: areaName || ""
-          }
-        : undefined,
+      subjects: Array.isArray(subjects) ? subjects : [],
+      salaryMin: Number(finalSalaryMin),
+      salaryMax: Number(finalSalaryMax),
+      location: locationData,
       status: "pending_admin_review"
     });
 

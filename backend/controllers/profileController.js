@@ -56,10 +56,8 @@ const createOrUpdateStudentProfile = async (req, res) => {
       { new: true, upsert: true }
     );
 
-    // Auto-approve student profile for testing/initial setup
-    await User.findByIdAndUpdate(req.user._id, {
-      isProfileApproved: true
-    });
+    // Do NOT auto-approve - admin must review minimum profile info first
+    // Admin will approve via the admin endpoint after verifying required fields
 
     res.json({ profile });
   } catch (err) {
@@ -136,10 +134,8 @@ const createOrUpdateTeacherProfile = async (req, res) => {
       { new: true, upsert: true }
     );
 
-    // Auto-approve teacher profile for testing/initial setup
-    await User.findByIdAndUpdate(req.user._id, {
-      isProfileApproved: true
-    });
+    // Do NOT auto-approve - admin must review minimum profile info first
+    // Admin will approve via the admin endpoint after verifying required fields
 
     res.json({ profile });
   } catch (err) {
