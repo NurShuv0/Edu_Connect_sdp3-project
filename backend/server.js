@@ -35,6 +35,10 @@ const io = socketIo(server, {
 app.use(cors());
 app.use(express.json());
 
+// Serve static files (for uploaded CV files, etc)
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+
 // DEBUG: Log all incoming requests
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
