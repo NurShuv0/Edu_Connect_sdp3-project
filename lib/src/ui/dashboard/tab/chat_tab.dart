@@ -50,22 +50,31 @@ class _ChatTabState extends State<ChatTab> {
       itemCount: rooms.length,
       itemBuilder: (_, i) {
         final r = rooms[i];
-        final studentId = r["studentId"];
-        final teacherId = r["teacherId"];
+        final studentId = r["studentId"] is Map ? r["studentId"]["_id"] : r["studentId"];
+        final teacherId = r["teacherId"] is Map ? r["teacherId"]["_id"] : r["teacherId"];
         final auth = GetIt.instance<AuthService>();
         final currentUserId = auth.user?.id;
 
         // Determine if current user is student or teacher
         final isStudent = currentUserId == studentId;
 
-        // Get partner's name from match info or use fallback
+        // Get partner's name - try different places
         String partnerName = "Chat Partner";
-        if (r["matchId"] is Map) {
+        
+        // First, try to get from populated user data
+        if (isStudent && r["teacherId"] is Map) {
+          partnerName = r["teacherId"]["name"] ?? "Teacher";
+        } else if (!isStudent && r["studentId"] is Map) {
+          partnerName = r["studentId"]["name"] ?? "Student";
+        } 
+        // Then try from matchId
+        else if (r["matchId"] is Map) {
           partnerName = isStudent
               ? (r["matchId"]["teacherName"] ?? "Teacher")
               : (r["matchId"]["studentName"] ?? "Student");
-        } else {
-          // Fallback if matchId not populated
+        }
+        // Final fallback
+        else {
           partnerName = isStudent ? "Teacher" : "Student";
         }
 

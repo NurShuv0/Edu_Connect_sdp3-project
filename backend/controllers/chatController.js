@@ -75,6 +75,8 @@ const listMyRooms = async (req, res) => {
       $or: [{ studentId: userId }, { teacherId: userId }]
     })
       .populate("matchId")
+      .populate("studentId", "name email phone role")
+      .populate("teacherId", "name email phone role")
       .sort({ updatedAt: -1 });
 
     return res.json({ rooms });
