@@ -128,12 +128,29 @@ const approveApplication = async (req, res) => {
 // --------------------------------------------------
 const getPendingApplications = async (req, res) => {
   try {
-    const applications = await TuitionApplication.find({ status: "pending" })
-      .populate("postId", "title classLevel subjects salary city area")
-      .populate("teacherId", "name email role")
+    const applications = await TuitionApplication.find({ status: "pending_admin_review" })
+      .populate("postId", "title classLevel subjects salaryMin salaryMax location")
+      .populate("teacherId", "name email")
+      .populate({
+        path: "teacherId",
+        select: "name email",
+        model: "User"
+      })
       .sort({ createdAt: -1 });
 
-    res.json({ applications });
+    // Enrich with teacher profile data (CV, NID, etc.)
+    const enrichedApps = await Promise.all(
+      applications.map(async (app) => {
+        const TeacherProfile = require("../models/TeacherProfile");
+        const profile = await TeacherProfile.findOne({ userId: app.teacherId._id });
+        return {
+          ...app.toObject(),
+          teacherProfile: profile || {}
+        };
+      })
+    );
+
+    res.json({ applications: enrichedApps });
   } catch (err) {
     console.error("getPendingApplications error:", err);
     res.status(500).json({ message: "Server error" });
@@ -424,7 +441,7 @@ const getDashboardStats = async (req, res) => {
     // Get tuition stats
     const activeTuitions = await TuitionPost.countDocuments({ status: "approved" });
     const pendingTuitions = await TuitionPost.countDocuments({ status: { $in: ["pending", "pending_admin_review"] } });
-    const pendingApplications = await TuitionApplication.countDocuments({ status: "pending" });
+    const pendingApplications = await TuitionApplication.countDocuments({ status: "pending_admin_review" });
     
     // Get match stats
     const activeMatches = await Match.countDocuments({ status: "active" });
@@ -712,12 +729,12 @@ const rejectTuitionPost = async (req, res) => {
 const approveTuitionApplication = async (req, res) => {
   try {
     const { appId } = req.params;
-    const { status } = req.body;
+    const { action, notes } = req.body; // action: "approve" or "reject"
 
-    if (status !== "approved") {
+    if (!["approve", "reject"].includes(action)) {
       return res
         .status(400)
-        .json({ success: false, message: "Invalid status" });
+        .json({ success: false, message: "Invalid action" });
     }
 
     const application = await TuitionApplication.findById(appId);
@@ -727,8 +744,11 @@ const approveTuitionApplication = async (req, res) => {
         .json({ success: false, message: "Application not found" });
     }
 
-    // Update application status
-    application.status = "approved";
+    // Update application status - admin review done
+    application.status = action === "approve" ? "admin_approved" : "admin_rejected";
+    application.adminReviewedBy = req.user._id;
+    application.adminReviewDate = new Date();
+    application.adminReviewNotes = notes || null;
     await application.save();
 
     // Find the post

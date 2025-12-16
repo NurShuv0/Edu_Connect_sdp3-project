@@ -16,8 +16,38 @@ const TuitionApplicationSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "accepted", "rejected", "approved"],
-      default: "pending"
+      enum: ["pending_admin_review", "admin_approved", "admin_rejected", "student_approved", "student_rejected"],
+      default: "pending_admin_review"
+    },
+
+    // Admin review fields
+    adminReviewedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null
+    },
+    adminReviewDate: {
+      type: Date,
+      default: null
+    },
+    adminReviewNotes: {
+      type: String,
+      default: null
+    },
+
+    // Student (post creator) review fields
+    studentReviewedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null
+    },
+    studentReviewDate: {
+      type: Date,
+      default: null
+    },
+    studentReviewNotes: {
+      type: String,
+      default: null
     }
   },
   { timestamps: true }

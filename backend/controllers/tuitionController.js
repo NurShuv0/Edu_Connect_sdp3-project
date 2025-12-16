@@ -234,7 +234,8 @@ exports.applyToPost = async (req, res) => {
 
     const app = await TuitionApplication.create({
       postId,
-      teacherId: req.user._id
+      teacherId: req.user._id,
+      status: "pending_admin_review"
     });
 
     res.status(201).json({ application: app });
