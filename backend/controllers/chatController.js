@@ -101,6 +101,7 @@ const getRoomMessages = async (req, res) => {
     assertInRoom(room, req.user._id);
 
     const messages = await ChatMessage.find({ roomId })
+      .populate("senderId", "name email phone role")
       .sort({ createdAt: 1 });
 
     return res.json({ messages });

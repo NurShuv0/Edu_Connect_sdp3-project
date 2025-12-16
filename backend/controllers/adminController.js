@@ -23,7 +23,7 @@ const getAdminStats = async (req, res) => {
       students: await User.countDocuments({ role: "student" }),
       teachers: await User.countDocuments({ role: "teacher" }),
       activeTuitions: await TuitionPost.countDocuments({ status: "approved" }),
-      pendingTuitions: await TuitionPost.countDocuments({ status: "pending" }),
+      pendingTuitions: await TuitionPost.countDocuments({ status: { $in: ["pending", "pending_admin_review"] } }),
       demoRequests: await DemoSession.countDocuments({ status: "pending" })
     };
 
@@ -423,7 +423,7 @@ const getDashboardStats = async (req, res) => {
 
     // Get tuition stats
     const activeTuitions = await TuitionPost.countDocuments({ status: "approved" });
-    const pendingTuitions = await TuitionPost.countDocuments({ status: "pending" });
+    const pendingTuitions = await TuitionPost.countDocuments({ status: { $in: ["pending", "pending_admin_review"] } });
     const pendingApplications = await TuitionApplication.countDocuments({ status: "pending" });
     
     // Get match stats
@@ -610,7 +610,7 @@ const rejectUserProfile = async (req, res) => {
  */
 const getPendingTuitionPosts = async (req, res) => {
   try {
-    const posts = await TuitionPost.find({ status: "pending" })
+    const posts = await TuitionPost.find({ status: { $in: ["pending", "pending_admin_review"] } })
       .populate("studentId", "name email phone")
       .sort({ createdAt: -1 });
 

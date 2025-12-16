@@ -121,7 +121,7 @@ class ChatService {
 
   Future<List<dynamic>> getMessages(String roomId) async {
     final res = await api.get(ApiPaths.chatMessages(roomId));
-    return res["messages"] ?? [];
+    return res["messages"] ?? res["data"] ?? [];
   }
 
   Future<Map<String, dynamic>> createOrGetRoom(String matchId) async {
@@ -155,9 +155,9 @@ class ChatService {
   /// Fallback: Send message via REST API
   Future<Map<String, dynamic>> sendMessage(String roomId, String text) async {
     final res = await api.post(ApiPaths.chatMessages(roomId), {
-      "content": text,
+      "text": text,
     });
-    return res["message"] ?? {};
+    return res["data"] ?? {};
   }
 
   /// Send typing indicator
