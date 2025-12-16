@@ -24,13 +24,13 @@ class NotificationService {
 
   Future<Map<String, dynamic>> markNotificationAsRead(String notificationId) async {
     final res = await apiClient.patch(
-      '${ApiPaths.baseUrl}/notifications/$notificationId/read',
+      '${ApiPaths.myNotifications}/$notificationId/read',
       data: {},
     );
     return res;
   }
 
   Future<void> deleteNotification(String notificationId) async {
-    await apiClient.delete(
-      '${ApiPaths.baseUrl}/notifications/$notificationId',
-    );
+    await apiClient.delete('${ApiPaths.myNotifications}/$notificationId');
+  }
+}

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:test_app/src/core/services/notification_service.dart';
-import 'package:test_app/src/ui/components/app_bar.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class NotificationsPage extends StatefulWidget {
@@ -79,10 +78,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: buildAppBar(
-        context,
-        title: 'Notifications',
-        showBackButton: true,
+      appBar: AppBar(
+        title: const Text('Notifications'),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
