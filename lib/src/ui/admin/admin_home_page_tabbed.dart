@@ -167,6 +167,17 @@ class _AdminHomePageTabbedState extends State<AdminHomePageTabbed>
         PopupMenuButton<String>(
           itemBuilder: (_) => <PopupMenuEntry<String>>[
             PopupMenuItem<String>(
+              value: 'reload',
+              child: const Row(
+                children: [
+                  Icon(Icons.refresh, size: 20),
+                  SizedBox(width: 12),
+                  Text('Reload'),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
+            PopupMenuItem<String>(
               value: 'settings',
               child: const Row(
                 children: [
@@ -209,7 +220,10 @@ class _AdminHomePageTabbedState extends State<AdminHomePageTabbed>
             ),
           ],
           onSelected: (value) {
-            if (value == 'settings') {
+            if (value == 'reload') {
+              loadData();
+              showSnackBar(context, 'Dashboard refreshed');
+            } else if (value == 'settings') {
               showSnackBar(context, 'Settings coming soon');
             } else if (value == 'help') {
               showSnackBar(context, 'Help coming soon');
@@ -1030,11 +1044,11 @@ class _AdminHomePageTabbedState extends State<AdminHomePageTabbed>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        t["subject"] ?? "Unknown",
+                        t["title"] ?? "Unknown Tuition",
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       Text(
-                        "${t["city"]}, ${t["classLevel"]}",
+                        "${t["location"]?["city"] ?? "Location TBD"}, Class ${t["classLevel"] ?? "Unknown"}",
                         style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                     ],
@@ -1272,50 +1286,57 @@ class _AdminHomePageTabbedState extends State<AdminHomePageTabbed>
     required Color color,
     required Color lightColor,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade100),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha((0.04 * 255).round()),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: lightColor,
-              borderRadius: BorderRadius.circular(10),
+    return GestureDetector(
+      onTap: title == "Pending Approvals"
+          ? () {
+              _tabController.animateTo(4); // Navigate to Approvals tab
+            }
+          : null,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade100),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha((0.04 * 255).round()),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
-            child: Icon(icon, color: color, size: 24),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: lightColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 24),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey.shade600,
-              fontWeight: FontWeight.w500,
+            const SizedBox(height: 16),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
