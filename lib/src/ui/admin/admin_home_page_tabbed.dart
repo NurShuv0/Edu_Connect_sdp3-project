@@ -4,6 +4,8 @@ import 'package:test_app/src/core/services/admin_service.dart';
 import 'package:test_app/src/core/services/auth_service.dart';
 import 'package:test_app/src/core/utils/snackbar_utils.dart';
 import 'package:test_app/src/ui/notifications/notification_badge.dart';
+import 'package:test_app/src/ui/settings/settings_page.dart';
+import 'package:test_app/src/ui/help/help_support_page.dart';
 
 class AdminHomePageTabbed extends StatefulWidget {
   const AdminHomePageTabbed({super.key});
@@ -226,9 +228,9 @@ class _AdminHomePageTabbedState extends State<AdminHomePageTabbed>
               loadData();
               showSnackBar(context, 'Dashboard refreshed');
             } else if (value == 'settings') {
-              showSnackBar(context, 'Settings coming soon');
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsPage()));
             } else if (value == 'help') {
-              showSnackBar(context, 'Help coming soon');
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const HelpSupportPage()));
             } else if (value == 'about') {
               _showAboutDialog();
             } else if (value == 'logout') {

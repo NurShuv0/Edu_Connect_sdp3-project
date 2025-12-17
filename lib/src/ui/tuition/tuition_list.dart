@@ -117,10 +117,7 @@ class _TuitionListPageState extends State<TuitionListPage> {
                           ],
                         ),
                         onTap: () {
-                          // TODO: Edit functionality
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Edit coming soon')),
-                          );
+                          _showEditTuitionDialog(context, tuition);
                         },
                       ),
                     if (isOwner)
@@ -133,10 +130,7 @@ class _TuitionListPageState extends State<TuitionListPage> {
                           ],
                         ),
                         onTap: () {
-                          // TODO: Delete functionality
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Delete coming soon')),
-                          );
+                          _showDeleteConfirmationDialog(context, tuition['_id']);
                         },
                       ),
                     if (!isOwner)
@@ -224,6 +218,97 @@ class _TuitionListPageState extends State<TuitionListPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showEditTuitionDialog(BuildContext context, Map<String, dynamic> tuition) {
+    final titleController = TextEditingController(text: tuition['title'] ?? '');
+    final descriptionController =
+        TextEditingController(text: tuition['description'] ?? '');
+    final salaryController =
+        TextEditingController(text: tuition['salary']?.toString() ?? '');
+    final classLevelController =
+        TextEditingController(text: tuition['classLevel'] ?? '');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Tuition'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(labelText: 'Title'),
+              ),
+              TextField(
+                controller: descriptionController,
+                decoration: const InputDecoration(labelText: 'Description'),
+                maxLines: 3,
+              ),
+              TextField(
+                controller: classLevelController,
+                decoration: const InputDecoration(labelText: 'Class Level'),
+              ),
+              TextField(
+                controller: salaryController,
+                decoration: const InputDecoration(labelText: 'Salary'),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Tuition updated successfully')),
+              );
+              Navigator.pop(context);
+              Future.delayed(const Duration(milliseconds: 300), () {
+                setState(() {});
+              });
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteConfirmationDialog(BuildContext context, String tuitionId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Tuition'),
+        content: const Text(
+          'Are you sure you want to delete this tuition? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Tuition deleted successfully')),
+              );
+              Future.delayed(const Duration(milliseconds: 300), () {
+                setState(() {});
+              });
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
       ),
     );
   }

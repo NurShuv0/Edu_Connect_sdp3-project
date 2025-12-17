@@ -258,9 +258,7 @@ class _TuitionDetailsPageState extends State<TuitionDetailsPage> {
             ),
             OutlinedButton.icon(
               onPressed: () => rejectApplication(app["_id"]),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.red,
-              ),
+              style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
               icon: const Icon(Icons.close, size: 16),
               label: const Text("Reject"),
             ),

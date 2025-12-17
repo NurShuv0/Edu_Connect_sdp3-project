@@ -141,7 +141,10 @@ class TuitionService {
   /// POST /tuition/applications/reject/:appId
   /// Body: { reason?: string }
   /// -----------------------------------------------------------
-  Future<Map<String, dynamic>> rejectApplication(String appId, {String? reason}) async {
+  Future<Map<String, dynamic>> rejectApplication(
+    String appId, {
+    String? reason,
+  }) async {
     final body = <String, dynamic>{};
     if (reason != null && reason.isNotEmpty) {
       body['reason'] = reason;
