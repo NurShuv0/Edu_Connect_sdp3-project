@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
 
 class AllTeachersPage extends StatefulWidget {
   const AllTeachersPage({Key? key}) : super(key: key);

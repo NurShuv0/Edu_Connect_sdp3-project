@@ -28,22 +28,28 @@ class ChatService {
 
   /// Initialize and connect to Socket.io server
   Future<void> connectSocket() async {
-    if (_socket != null && _socket!.connected) return;
+    try {
+      if (_socket != null && _socket!.connected) return;
 
-    final token = await _authService.getToken();
-    if (token == null) return;
+      final token = await _authService.getToken();
+      if (token == null) return;
 
-    _socket = IO.io(
-      'http://localhost:5000', // Or your backend URL
-      IO.OptionBuilder()
-          .setTransports(['websocket'])
-          .disableAutoConnect()
-          .setAuth({'token': token})
-          .build(),
-    );
+      const backendUrl = 'http://192.168.0.103:5000';
 
-    _setupSocketListeners();
-    _socket!.connect();
+      _socket = IO.io(
+        backendUrl,
+        IO.OptionBuilder()
+            .setTransports(['websocket'])
+            .disableAutoConnect()
+            .setAuth({'token': token})
+            .build(),
+      );
+
+      _setupSocketListeners();
+      _socket!.connect();
+    } catch (e) {
+      print('Socket connection error: $e');
+    }
   }
 
   /// Setup all socket event listeners
@@ -131,10 +137,14 @@ class ChatService {
 
   /// Join a chat room via socket (for real-time updates)
   void joinRoom(String roomId) {
-    if (_socket == null || !_socket!.connected) {
-      unawaited(connectSocket());
+    try {
+      if (_socket == null || !_socket!.connected) {
+        unawaited(connectSocket());
+      }
+      _socket?.emit('joinRoom', {'roomId': roomId});
+    } catch (e) {
+      print('Error joining room: $e');
     }
-    _socket?.emit('joinRoom', {'roomId': roomId});
   }
 
   /// Leave a chat room

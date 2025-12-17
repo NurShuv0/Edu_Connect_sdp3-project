@@ -128,7 +128,7 @@ class _SettingsPageState extends State<SettingsPage> {
       subtitle: Text(subtitle),
       value: value,
       onChanged: enabled ? onChanged : null,
-      activeColor: Colors.blue,
+      activeThumbColor: Colors.blue,
     );
   }
 

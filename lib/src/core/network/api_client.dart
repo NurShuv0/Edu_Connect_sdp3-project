@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:test_app/src/config/env.dart';
 import 'package:test_app/src/core/services/storage_service.dart';

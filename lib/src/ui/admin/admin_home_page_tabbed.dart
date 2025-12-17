@@ -2078,7 +2078,7 @@ class _AdminHomePageTabbedState extends State<AdminHomePageTabbed>
                   GestureDetector(
                     onTap: () => _showNIDPreview(
                       context,
-                      teacherProfile!['nidCardImageUrl'] ?? '',
+                      teacherProfile['nidCardImageUrl'] ?? '',
                     ),
                     child: Container(
                       padding: const EdgeInsets.all(12),
@@ -2101,7 +2101,7 @@ class _AdminHomePageTabbedState extends State<AdminHomePageTabbed>
                           ClipRRect(
                             borderRadius: BorderRadius.circular(6),
                             child: Image.network(
-                              teacherProfile!['nidCardImageUrl'] ?? '',
+                              teacherProfile['nidCardImageUrl'] ?? '',
                               height: 120,
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) {

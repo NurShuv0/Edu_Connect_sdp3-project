@@ -25,17 +25,29 @@ class _ChatTabState extends State<ChatTab> {
   }
 
   Future<void> loadRooms() async {
-    setState(() => loading = true);
+    if (!mounted) return;
+    try {
+      setState(() => loading = true);
+    } catch (_) {}
 
     try {
       final res = await chat.getMyRooms();
-      rooms = res;
+      if (!mounted) return;
+      try {
+        setState(() => rooms = res);
+      } catch (_) {}
     } catch (e) {
       print("Chat rooms load error: $e");
-      rooms = [];
+      if (!mounted) return;
+      try {
+        setState(() => rooms = []);
+      } catch (_) {}
     }
 
-    setState(() => loading = false);
+    if (!mounted) return;
+    try {
+      setState(() => loading = false);
+    } catch (_) {}
   }
 
   @override
