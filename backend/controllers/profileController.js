@@ -56,10 +56,8 @@ const createOrUpdateStudentProfile = async (req, res) => {
       { new: true, upsert: true }
     );
 
-    // Auto-approve student profile for testing/initial setup
-    await User.findByIdAndUpdate(req.user._id, {
-      isProfileApproved: true
-    });
+    // Do NOT auto-approve - admin must review minimum profile info first
+    // Admin will approve via the admin endpoint after verifying required fields
 
     res.json({ profile });
   } catch (err) {
@@ -136,10 +134,8 @@ const createOrUpdateTeacherProfile = async (req, res) => {
       { new: true, upsert: true }
     );
 
-    // Auto-approve teacher profile for testing/initial setup
-    await User.findByIdAndUpdate(req.user._id, {
-      isProfileApproved: true
-    });
+    // Do NOT auto-approve - admin must review minimum profile info first
+    // Admin will approve via the admin endpoint after verifying required fields
 
     res.json({ profile });
   } catch (err) {
@@ -210,9 +206,53 @@ const getTopTeachers = async (req, res) => {
   }
 };
 
+/* --------------------------------------------------
+   UPLOAD CV FILE FOR TEACHER
+   POST /api/profile/teacher/upload-cv
+-------------------------------------------------- */
+const uploadTeacherCV = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "No file uploaded" 
+      });
+    }
+
+    // In a real app, upload to cloud storage (S3, etc)
+    // For now, create a data URL or return the file path
+    const cvUrl = `/uploads/cv/${req.user._id}/${req.file.filename}`;
+
+    // Update teacher profile with CV URL
+    const profile = await TeacherProfile.findOne({ userId: req.user._id });
+    if (!profile) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Teacher profile not found" 
+      });
+    }
+
+    profile.cvFileUrl = cvUrl;
+    await profile.save();
+
+    res.status(200).json({
+      success: true,
+      message: "CV uploaded successfully",
+      cvFileUrl: cvUrl
+    });
+  } catch (error) {
+    console.error("CV upload error:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to upload CV" 
+    });
+  }
+};
+
 module.exports = {
   createOrUpdateStudentProfile,
   createOrUpdateTeacherProfile,
   getMyProfile,
-  getTopTeachers
+  getTopTeachers,
+  uploadTeacherCV
 };

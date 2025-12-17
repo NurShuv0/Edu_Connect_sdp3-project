@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:test_app/src/core/services/admin_service.dart';
 import 'package:test_app/src/core/services/auth_service.dart';
 import 'package:test_app/src/core/utils/snackbar_utils.dart';
+import 'package:test_app/src/ui/notifications/notification_badge.dart';
 
 class AdminHomePageTabbed extends StatefulWidget {
   const AdminHomePageTabbed({super.key});
@@ -164,8 +165,20 @@ class _AdminHomePageTabbedState extends State<AdminHomePageTabbed>
             ),
           ),
         ),
+        const NotificationBadge(),
         PopupMenuButton<String>(
           itemBuilder: (_) => <PopupMenuEntry<String>>[
+            PopupMenuItem<String>(
+              value: 'reload',
+              child: const Row(
+                children: [
+                  Icon(Icons.refresh, size: 20),
+                  SizedBox(width: 12),
+                  Text('Reload'),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
             PopupMenuItem<String>(
               value: 'settings',
               child: const Row(
@@ -209,7 +222,10 @@ class _AdminHomePageTabbedState extends State<AdminHomePageTabbed>
             ),
           ],
           onSelected: (value) {
-            if (value == 'settings') {
+            if (value == 'reload') {
+              loadData();
+              showSnackBar(context, 'Dashboard refreshed');
+            } else if (value == 'settings') {
               showSnackBar(context, 'Settings coming soon');
             } else if (value == 'help') {
               showSnackBar(context, 'Help coming soon');
@@ -1030,31 +1046,62 @@ class _AdminHomePageTabbedState extends State<AdminHomePageTabbed>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        t["subject"] ?? "Unknown",
+                        t["title"] ?? "Unknown Tuition",
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       Text(
-                        "${t["city"]}, ${t["classLevel"]}",
+                        "${t["location"]?["city"] ?? "Location TBD"}, Class ${t["classLevel"] ?? "Unknown"}",
                         style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      Text(
+                        "Salary: ${t["salaryMin"] ?? "N/A"} - ${t["salaryMax"] ?? "N/A"} BDT",
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade600,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    try {
-                      await admin.approveTuition(t["_id"]);
-                      loadData();
-                      showSnackBar(context, "Tuition approved successfully");
-                    } catch (e) {
-                      showSnackBar(context, "Error: $e", isError: true);
-                    }
-                  },
-                  icon: const Icon(Icons.check_circle),
-                  label: const Text("Approve"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                  ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  spacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () => _showTuitionDetailsDialog(context, t),
+                      icon: const Icon(Icons.info, size: 18),
+                      label: const Text("Details"),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        try {
+                          await admin.approveTuition(t["_id"]);
+                          loadData();
+                          showSnackBar(
+                            context,
+                            "Tuition approved successfully",
+                          );
+                        } catch (e) {
+                          showSnackBar(context, "Error: $e", isError: true);
+                        }
+                      },
+                      icon: const Icon(Icons.check_circle, size: 18),
+                      label: const Text("Approve"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1086,49 +1133,65 @@ class _AdminHomePageTabbedState extends State<AdminHomePageTabbed>
           final app = applications[index];
           final post = app['postId'] as Map?;
           final teacher = app['teacherId'] as Map?;
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        post?['title'] ?? "Unknown Tuition",
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      Text(
-                        "Applied by: ${teacher?['name'] ?? 'Unknown Teacher'}",
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                      Text(
-                        "Class: ${post?['classLevel'] ?? 'N/A'} | Salary: ${post?['salary'] ?? 'N/A'}",
-                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
+          final teacherProfile = app['teacherProfile'] as Map?;
+          return GestureDetector(
+            onTap: () => _showApplicationDetailDialog(
+              context,
+              app,
+              post as Map<String, dynamic>?,
+              teacher as Map<String, dynamic>?,
+              teacherProfile as Map<String, dynamic>?,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade200),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    try {
-                      await admin.approveApplication(app['_id'] ?? app['id']);
-                      loadData();
-                      showSnackBar(
-                        context,
-                        "Application approved successfully",
-                      );
-                    } catch (e) {
-                      showSnackBar(context, "Error: $e", isError: true);
-                    }
-                  },
-                  icon: const Icon(Icons.check_circle),
-                  label: const Text("Approve"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                  ),
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: Colors.indigo.shade100,
+                      child: Text(
+                        (teacher?['name'] ?? 'T')
+                            .toString()
+                            .substring(0, 1)
+                            .toUpperCase(),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.indigo,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            post?['title'] ?? "Unknown Tuition",
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          Text(
+                            "Teacher: ${teacher?['name'] ?? 'Unknown'}",
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                          Text(
+                            "Class: ${post?['classLevel'] ?? 'N/A'} | Salary: ${post?['salaryMin'] ?? 'N/A'}-${post?['salaryMax'] ?? 'N/A'}",
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           );
         },
@@ -1272,50 +1335,57 @@ class _AdminHomePageTabbedState extends State<AdminHomePageTabbed>
     required Color color,
     required Color lightColor,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade100),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha((0.04 * 255).round()),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: lightColor,
-              borderRadius: BorderRadius.circular(10),
+    return GestureDetector(
+      onTap: title == "Pending Approvals"
+          ? () {
+              _tabController.animateTo(4); // Navigate to Approvals tab
+            }
+          : null,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade100),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha((0.04 * 255).round()),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
-            child: Icon(icon, color: color, size: 24),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: lightColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 24),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey.shade600,
-              fontWeight: FontWeight.w500,
+            const SizedBox(height: 16),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1519,11 +1589,607 @@ class _AdminHomePageTabbedState extends State<AdminHomePageTabbed>
     );
   }
 
+  // Show tuition details dialog with student profile
+  void _showTuitionDetailsDialog(
+    BuildContext context,
+    Map<String, dynamic> tuition,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Tuition Details"),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Student Section
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.indigo.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.indigo.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 24,
+                          backgroundColor: Colors.indigo,
+                          child: Text(
+                            _getInitial(tuition['studentId']?['name'] ?? 'S'),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                tuition['studentId']?['name'] ??
+                                    'Unknown Student',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              Text(
+                                tuition['studentId']?['email'] ?? 'No email',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (tuition['studentId']?['phone'] != null)
+                      Text(
+                        "Phone: ${tuition['studentId']?['phone'] ?? 'N/A'}",
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Tuition Details Section
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.amber.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tuition['title'] ?? 'Unknown Tuition',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: Colors.amber.shade900,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Class: ${tuition['classLevel'] ?? 'N/A'}",
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    Text(
+                      "Subject: ${tuition['subject'] ?? 'N/A'}",
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    Text(
+                      "Location: ${tuition['location']?['area'] ?? 'N/A'}, ${tuition['location']?['city'] ?? 'N/A'}",
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    Text(
+                      "Salary: ${tuition['salaryMin'] ?? 'N/A'} - ${tuition['salaryMax'] ?? 'N/A'} BDT",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Description Section
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Description",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      tuition['details'] ?? 'No description provided',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text("Close"),
+          ),
+          ElevatedButton.icon(
+            onPressed: () async {
+              try {
+                await admin.approveTuition(tuition['_id']);
+                Navigator.of(ctx).pop();
+                loadData();
+                showSnackBar(context, "Tuition approved successfully");
+              } catch (e) {
+                showSnackBar(context, "Error: $e", isError: true);
+              }
+            },
+            icon: const Icon(Icons.check_circle),
+            label: const Text("Approve"),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Show NID preview in full size
+  void _showNIDPreview(BuildContext context, String nidUrl) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: GestureDetector(
+          onTap: () => Navigator.of(ctx).pop(),
+          child: Stack(
+            children: [
+              GestureDetector(
+                onTap: () {}, // Prevent closing when tapping image
+                child: Image.network(
+                  nidUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.black87,
+                      child: const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.image_not_supported,
+                              size: 48,
+                              color: Colors.white,
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'Failed to load image',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Positioned(
+                top: 16,
+                right: 16,
+                child: GestureDetector(
+                  onTap: () => Navigator.of(ctx).pop(),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withAlpha((0.6 * 255).round()),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   // Helper method to safely get first character of name
   String _getInitial(dynamic name) {
     if (name == null || name.toString().isEmpty) {
       return "U";
     }
     return name.toString()[0].toUpperCase();
+  }
+
+  // Show detailed application review dialog
+  void _showApplicationDetailDialog(
+    BuildContext context,
+    Map<String, dynamic> application,
+    Map<String, dynamic>? post,
+    Map<String, dynamic>? teacher,
+    Map<String, dynamic>? teacherProfile,
+  ) {
+    final TextEditingController notesController = TextEditingController();
+    bool isProcessing = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text("Application Review Details"),
+          titleTextStyle: const TextStyle(
+            color: Colors.black,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Teacher Information Section
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.indigo.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.indigo.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 28,
+                            backgroundColor: Colors.indigo,
+                            child: Text(
+                              _getInitial(teacher?['name']),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  teacher?['name'] ?? 'Unknown Teacher',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                Text(
+                                  teacher?['email'] ?? 'No email',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                                if (teacher?['phone'] != null)
+                                  Text(
+                                    teacher?['phone'] ?? 'No phone',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      if (teacherProfile?['qualification'] != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            "Qualification: ${teacherProfile?['qualification'] ?? 'N/A'}",
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      if (teacherProfile?['subjects'] != null &&
+                          (teacherProfile?['subjects'] as List).isNotEmpty)
+                        Text(
+                          "Subjects: ${(teacherProfile?['subjects'] as List).join(', ')}",
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Tuition Post Information
+                if (post != null)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.amber.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Tuition Post",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: Colors.amber.shade900,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Title: ${post['title'] ?? 'N/A'}",
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        Text(
+                          "Class: ${post['classLevel'] ?? 'N/A'}",
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        Text(
+                          "Subjects: ${post['subject'] ?? 'N/A'}",
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        Text(
+                          "Salary: ${post['salaryMin'] ?? 'N/A'} - ${post['salaryMax'] ?? 'N/A'}",
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 16),
+
+                // CV Section
+                if (teacherProfile?['cvFileUrl'] != null &&
+                    teacherProfile!['cvFileUrl'].toString().isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.file_present,
+                              color: Colors.green.shade600,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    "CV Document",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  Text(
+                                    "Uploaded",
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                // Would open CV file
+                              },
+                              child: const Text("View"),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 12),
+
+                // NID Section
+                if (teacherProfile?['nidCardImageUrl'] != null &&
+                    teacherProfile!['nidCardImageUrl'].toString().isNotEmpty)
+                  GestureDetector(
+                    onTap: () => _showNIDPreview(
+                      context,
+                      teacherProfile!['nidCardImageUrl'] ?? '',
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue.shade200),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "NID Verification (Tap to view full size)",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Image.network(
+                              teacherProfile!['nidCardImageUrl'] ?? '',
+                              height: 120,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  height: 120,
+                                  color: Colors.grey.shade200,
+                                  child: const Center(
+                                    child: Icon(Icons.image_not_supported),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 16),
+
+                // Admin Notes Section
+                Text(
+                  "Admin Review Notes",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: notesController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    hintText: "Add notes for approval or rejection...",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    contentPadding: const EdgeInsets.all(12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton.icon(
+              onPressed: isProcessing
+                  ? null
+                  : () async {
+                      setState(() => isProcessing = true);
+                      try {
+                        final admin = GetIt.instance<AdminService>();
+                        await admin.approveApplication(
+                          application['_id'] ?? application['id'],
+                          action: 'approve',
+                          notes: notesController.text,
+                        );
+                        if (mounted) {
+                          Navigator.of(ctx).pop();
+                          loadData();
+                          showSnackBar(
+                            context,
+                            "Application approved successfully",
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          showSnackBar(
+                            context,
+                            "Error approving: $e",
+                            isError: true,
+                          );
+                        }
+                      } finally {
+                        if (mounted) {
+                          setState(() => isProcessing = false);
+                        }
+                      }
+                    },
+              icon: const Icon(Icons.check_circle),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              label: const Text("Approve"),
+            ),
+            OutlinedButton.icon(
+              onPressed: isProcessing
+                  ? null
+                  : () async {
+                      setState(() => isProcessing = true);
+                      try {
+                        final admin = GetIt.instance<AdminService>();
+                        await admin.approveApplication(
+                          application['_id'] ?? application['id'],
+                          action: 'reject',
+                          notes: notesController.text,
+                        );
+                        if (mounted) {
+                          Navigator.of(ctx).pop();
+                          loadData();
+                          showSnackBar(context, "Application rejected");
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          showSnackBar(
+                            context,
+                            "Error rejecting: $e",
+                            isError: true,
+                          );
+                        }
+                      } finally {
+                        if (mounted) {
+                          setState(() => isProcessing = false);
+                        }
+                      }
+                    },
+              icon: const Icon(Icons.cancel),
+              label: const Text("Reject"),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

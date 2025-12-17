@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:test_app/src/core/services/admin_service.dart';
 import 'package:test_app/src/core/services/auth_service.dart';
-import 'package:test_app/src/core/utils/snackbar_utils.dart';
+// removed unused import
 
 class AdminHomePage extends StatefulWidget {
   const AdminHomePage({super.key});
@@ -122,7 +122,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
       foregroundColor: Colors.black87,
       actions: [
         Padding(
-          padding: const EdgeInsets.only(right: 24),
+          padding: const EdgeInsets.only(right: 16),
           child: Center(
             child: Text(
               auth.user?.email ?? "Admin",
@@ -130,6 +130,41 @@ class _AdminHomePageState extends State<AdminHomePage> {
             ),
           ),
         ),
+        PopupMenuButton<String>(
+          itemBuilder: (_) => <PopupMenuEntry<String>>[
+            PopupMenuItem<String>(
+              value: 'reload',
+              child: const Row(
+                children: [
+                  Icon(Icons.refresh, size: 20),
+                  SizedBox(width: 12),
+                  Text('Reload'),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
+            PopupMenuItem<String>(
+              value: 'logout',
+              child: const Row(
+                children: [
+                  Icon(Icons.logout, size: 20, color: Colors.red),
+                  SizedBox(width: 12),
+                  Text('Logout', style: TextStyle(color: Colors.red)),
+                ],
+              ),
+            ),
+          ],
+          onSelected: (value) {
+            if (value == 'reload') {
+              loadData();
+              showSnackBar(context, 'Dashboard refreshed');
+            } else if (value == 'logout') {
+              // Logout logic here
+            }
+          },
+          icon: const Icon(Icons.more_vert),
+        ),
+        const SizedBox(width: 8),
       ],
     );
   }
@@ -278,50 +313,60 @@ class _AdminHomePageState extends State<AdminHomePage> {
     required Color color,
     required Color lightColor,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade100),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha((0.04 * 255).round()),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: lightColor,
-              borderRadius: BorderRadius.circular(10),
+    return GestureDetector(
+      onTap: title == "Pending Approvals"
+          ? () {
+              showDialog(
+                context: context,
+                builder: (_) => _buildPendingApprovalsDialog(),
+              );
+            }
+          : null,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade100),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha((0.04 * 255).round()),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
-            child: Icon(icon, color: color, size: 24),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: lightColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 24),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey.shade600,
-              fontWeight: FontWeight.w500,
+            const SizedBox(height: 16),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -703,6 +748,69 @@ class _AdminHomePageState extends State<AdminHomePage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPendingApprovalsDialog() {
+    return AlertDialog(
+      title: const Text("Pending Approvals"),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (tuitions.isNotEmpty) ...[
+                const Text(
+                  "Tuition Posts",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 12),
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: tuitions.length,
+                  itemBuilder: (_, index) {
+                    final t = tuitions[index];
+                    return ListTile(
+                      title: Text(t["title"] ?? "Unknown"),
+                      subtitle: Text(
+                        "${t["location"]?["city"] ?? "Location"}, Class ${t["classLevel"] ?? "?"}",
+                      ),
+                    );
+                  },
+                ),
+              ],
+              if (teachers.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                const Text(
+                  "Teacher Verifications",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 12),
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: teachers.length,
+                  itemBuilder: (_, index) {
+                    final t = teachers[index];
+                    return ListTile(
+                      title: Text(t["name"] ?? "Unknown"),
+                      subtitle: Text(t["email"] ?? "No email"),
+                    );
+                  },
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("Close"),
+        ),
+      ],
     );
   }
 }

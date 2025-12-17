@@ -75,6 +75,8 @@ const listMyRooms = async (req, res) => {
       $or: [{ studentId: userId }, { teacherId: userId }]
     })
       .populate("matchId")
+      .populate("studentId", "name email phone role")
+      .populate("teacherId", "name email phone role")
       .sort({ updatedAt: -1 });
 
     return res.json({ rooms });
@@ -101,6 +103,7 @@ const getRoomMessages = async (req, res) => {
     assertInRoom(room, req.user._id);
 
     const messages = await ChatMessage.find({ roomId })
+      .populate("senderId", "name email phone role")
       .sort({ createdAt: 1 });
 
     return res.json({ messages });

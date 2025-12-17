@@ -21,7 +21,11 @@ exports.createPost = async (req, res) => {
       description,
       classLevel,
       subjects,
+      // frontend may send salaryMin/salaryMax or salaryRange: {min,max}
+      salaryMin,
+      salaryMax,
       salaryRange,
+      // frontend may send location as { lat, lng, city, area } or { coordinates: [lng, lat], city }
       location,
       areaName,
       schedulePreferences
@@ -31,23 +35,57 @@ exports.createPost = async (req, res) => {
       return res.status(400).json({ message: "Missing fields" });
     }
 
+    // normalize salary values (prefer explicit min/max, fallback to salaryRange)
+    const resolvedSalaryMin = typeof salaryMin === 'number'
+      ? salaryMin
+      : (salaryRange && typeof salaryRange.min === 'number')
+        ? salaryRange.min
+        : 0;
+    const resolvedSalaryMax = typeof salaryMax === 'number'
+      ? salaryMax
+      : (salaryRange && typeof salaryRange.max === 'number')
+        ? salaryRange.max
+        : 0;
+
+    // normalize location: accept { lat, lng, city, area } or { coordinates: [lng, lat] }
+    let normalizedLocation;
+    if (location) {
+      try {
+        if (Array.isArray(location.coordinates) && location.coordinates.length >= 2) {
+          // coordinates are [lng, lat]
+          normalizedLocation = {
+            type: 'Point',
+            coordinates: [location.coordinates[0], location.coordinates[1]],
+            city: location.city || areaName || '',
+            area: location.area || areaName || ''
+          };
+        } else if (typeof location.lat === 'number' && typeof location.lng === 'number') {
+          normalizedLocation = {
+            type: 'Point',
+            coordinates: [location.lng, location.lat],
+            city: location.city || areaName || '',
+            area: location.area || areaName || ''
+          };
+        } else {
+          // unknown shape, ignore location to avoid DB errors
+          normalizedLocation = undefined;
+        }
+      } catch (e) {
+        console.warn('createPost: failed to normalize location', e);
+        normalizedLocation = undefined;
+      }
+    }
+
     const post = await TuitionPost.create({
       studentId: req.user._id,
       title,
       details: description,
       classLevel,
       subjects,
-      salaryMin: salaryRange?.min || 0,
-      salaryMax: salaryRange?.max || 0,
-      location: location
-        ? {
-            type: "Point",
-            coordinates: [location.coordinates[0], location.coordinates[1]],
-            city: areaName || "",
-            area: areaName || ""
-          }
-        : undefined,
-      status: "pending_admin_review"
+      salaryMin: resolvedSalaryMin,
+      salaryMax: resolvedSalaryMax,
+      location: normalizedLocation,
+      status: 'pending_admin_review'
     });
 
     res.status(201).json({ post });

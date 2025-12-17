@@ -248,6 +248,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   Widget _buildBubble(dynamic msg) {
     final mine = isMine(msg);
     final status = msg["status"] ?? "";
+    final senderName = msg["senderId"] is Map
+        ? msg["senderId"]["name"] ?? "Unknown"
+        : "Unknown";
 
     return Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
@@ -263,6 +266,18 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               ? CrossAxisAlignment.end
               : CrossAxisAlignment.start,
           children: [
+            if (!mine)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  senderName,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ),
             Text(
               msg["text"] ?? msg["content"] ?? "",
               style: TextStyle(color: mine ? Colors.white : Colors.black),

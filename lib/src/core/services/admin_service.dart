@@ -65,11 +65,20 @@ class AdminService {
   }
 
   // ---------------------------------------------------------
-  // APPROVE TUITION APPLICATION
+  // APPROVE/REJECT TUITION APPLICATION
   // PATCH /api/admin/applications/:id/approve
+  // body: { action: 'approve'|'reject', notes?: string }
   // ---------------------------------------------------------
-  Future<void> approveApplication(String appId) async {
-    await api.patch(ApiPaths.adminApplicationApprove(appId), {});
+  Future<void> approveApplication(
+    String appId, {
+    String action = 'approve',
+    String? notes,
+  }) async {
+    final body = {'action': action};
+    if (notes != null && notes.isNotEmpty) {
+      body['notes'] = notes;
+    }
+    await api.patch(ApiPaths.adminApplicationApprove(appId), body);
   }
 
   // ---------------------------------------------------------
@@ -105,21 +114,17 @@ class AdminService {
   }
 
   // ---------------------------------------------------------
-  // GET ALL PENDING TUITIONS
-  // GET /api/tuition/posts
+  // GET ALL PENDING TUITIONS (ADMIN ENDPOINT)
+  // GET /api/admin/tuition/pending
   //
-  // Backend returns all posts to public.
-  // We filter pending ones.
+  // Backend returns pending tuition posts for admin review.
   // ---------------------------------------------------------
   Future<List<dynamic>> getTuitionsPending() async {
     try {
-      final res = await api.get(ApiPaths.tuitionList);
-      final posts = res['posts'] ?? res['data'] ?? [];
-
-      return posts.where((p) {
-        final status = p["status"] ?? "pending";
-        return status == "pending" || status == "pending_admin_review";
-      }).toList();
+      final res = await api.get(ApiPaths.adminPendingTuitions);
+      final posts = res['data'] ?? res['posts'] ?? [];
+      print("Fetched ${posts.length} pending tuitions");
+      return posts;
     } catch (e) {
       print("Error fetching pending tuitions: $e");
       return [];

@@ -23,7 +23,7 @@ const getAdminStats = async (req, res) => {
       students: await User.countDocuments({ role: "student" }),
       teachers: await User.countDocuments({ role: "teacher" }),
       activeTuitions: await TuitionPost.countDocuments({ status: "approved" }),
-      pendingTuitions: await TuitionPost.countDocuments({ status: "pending" }),
+      pendingTuitions: await TuitionPost.countDocuments({ status: { $in: ["pending", "pending_admin_review"] } }),
       demoRequests: await DemoSession.countDocuments({ status: "pending" })
     };
 
@@ -97,6 +97,16 @@ const approveTuition = async (req, res) => {
     tuition.status = "approved";
     await tuition.save();
 
+    // Create notification for student
+    await Notification.create({
+      userId: tuition.studentId,
+      title: "Tuition Post Approved",
+      message: `Your tuition post "${tuition.title}" has been approved and is now visible to teachers.`,
+      type: "tuition_approved",
+      relatedId: tuition._id,
+      isRead: false
+    });
+
     res.json({ message: "Tuition approved", tuition });
   } catch (err) {
     console.error("approveTuition error:", err);
@@ -128,12 +138,29 @@ const approveApplication = async (req, res) => {
 // --------------------------------------------------
 const getPendingApplications = async (req, res) => {
   try {
-    const applications = await TuitionApplication.find({ status: "pending" })
-      .populate("postId", "title classLevel subjects salary city area")
-      .populate("teacherId", "name email role")
+    const applications = await TuitionApplication.find({ status: "pending_admin_review" })
+      .populate("postId", "title classLevel subjects salaryMin salaryMax location")
+      .populate("teacherId", "name email")
+      .populate({
+        path: "teacherId",
+        select: "name email",
+        model: "User"
+      })
       .sort({ createdAt: -1 });
 
-    res.json({ applications });
+    // Enrich with teacher profile data (CV, NID, etc.)
+    const enrichedApps = await Promise.all(
+      applications.map(async (app) => {
+        const TeacherProfile = require("../models/TeacherProfile");
+        const profile = await TeacherProfile.findOne({ userId: app.teacherId._id });
+        return {
+          ...app.toObject(),
+          teacherProfile: profile || {}
+        };
+      })
+    );
+
+    res.json({ applications: enrichedApps });
   } catch (err) {
     console.error("getPendingApplications error:", err);
     res.status(500).json({ message: "Server error" });
@@ -423,8 +450,8 @@ const getDashboardStats = async (req, res) => {
 
     // Get tuition stats
     const activeTuitions = await TuitionPost.countDocuments({ status: "approved" });
-    const pendingTuitions = await TuitionPost.countDocuments({ status: "pending" });
-    const pendingApplications = await TuitionApplication.countDocuments({ status: "pending" });
+    const pendingTuitions = await TuitionPost.countDocuments({ status: { $in: ["pending", "pending_admin_review"] } });
+    const pendingApplications = await TuitionApplication.countDocuments({ status: "pending_admin_review" });
     
     // Get match stats
     const activeMatches = await Match.countDocuments({ status: "active" });
@@ -610,7 +637,7 @@ const rejectUserProfile = async (req, res) => {
  */
 const getPendingTuitionPosts = async (req, res) => {
   try {
-    const posts = await TuitionPost.find({ status: "pending" })
+    const posts = await TuitionPost.find({ status: { $in: ["pending", "pending_admin_review"] } })
       .populate("studentId", "name email phone")
       .sort({ createdAt: -1 });
 
@@ -712,12 +739,12 @@ const rejectTuitionPost = async (req, res) => {
 const approveTuitionApplication = async (req, res) => {
   try {
     const { appId } = req.params;
-    const { status } = req.body;
+    const { action, notes } = req.body; // action: "approve" or "reject"
 
-    if (status !== "approved") {
+    if (!["approve", "reject"].includes(action)) {
       return res
         .status(400)
-        .json({ success: false, message: "Invalid status" });
+        .json({ success: false, message: "Invalid action" });
     }
 
     const application = await TuitionApplication.findById(appId);
@@ -727,8 +754,11 @@ const approveTuitionApplication = async (req, res) => {
         .json({ success: false, message: "Application not found" });
     }
 
-    // Update application status
-    application.status = "approved";
+    // Update application status - admin review done
+    application.status = action === "approve" ? "admin_approved" : "admin_rejected";
+    application.adminReviewedBy = req.user._id;
+    application.adminReviewDate = new Date();
+    application.adminReviewNotes = notes || null;
     await application.save();
 
     // Find the post
@@ -739,25 +769,61 @@ const approveTuitionApplication = async (req, res) => {
         .json({ success: false, message: "Post not found" });
     }
 
-    // Create a match
-    const match = await Match.create({
-      tuitionId: post._id,
-      studentId: post.studentId,
-      teacherId: application.teacherId,
-      status: "active",
-      isChatAllowed: true,
-      isDemoAllowed: true
-    });
+    // Create notification for teacher about application decision
+    if (action === "approve") {
+      // Create a match
+      const match = await Match.create({
+        tuitionId: post._id,
+        studentId: post.studentId,
+        teacherId: application.teacherId,
+        status: "active",
+        isChatAllowed: true,
+        isDemoAllowed: true
+      });
 
-    logger.info(
-      `Application approved and match created: ${appId} by admin: ${req.user.email}`
-    );
+      // Notify teacher of approval
+      await Notification.create({
+        userId: application.teacherId,
+        title: "Application Approved",
+        message: `Your application for "${post.title}" has been approved! You can now connect with the student.`,
+        type: "application_approved",
+        relatedId: application._id,
+        isRead: false
+      });
 
-    res.status(200).json({
-      success: true,
-      message: "Application approved and match created",
-      match
-    });
+      logger.info(
+        `Application approved and match created: ${appId} by admin: ${req.user.email}`
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Application approved and match created",
+        match
+      });
+    } else {
+      // Notify teacher of rejection
+      const rejectionMessage = notes
+        ? `Your application for "${post.title}" was not approved. ${notes}`
+        : `Your application for "${post.title}" was not approved.`;
+
+      await Notification.create({
+        userId: application.teacherId,
+        title: "Application Not Approved",
+        message: rejectionMessage,
+        type: "application_rejected",
+        relatedId: application._id,
+        isRead: false
+      });
+
+      logger.info(
+        `Application rejected: ${appId} by admin: ${req.user.email}`
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Application rejected"
+      });
+    }
   } catch (error) {
     logger.error("Error approving application:", error.message);
     res

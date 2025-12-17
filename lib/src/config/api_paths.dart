@@ -55,6 +55,8 @@ class ApiPaths {
   static String adminSuspendUser(String id) => "/admin/users/$id/suspend";
   static String adminApproveTeacher(String id) => "/admin/profiles/$id/approve";
 
+  static const String adminPendingTuitions = "/admin/tuition-posts/pending";
+
   static String adminApproveTuition(String id) =>
       "/admin/tuition-posts/$id/approve";
 

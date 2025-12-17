@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:test_app/src/core/services/admin_service.dart';
-import 'package:test_app/src/core/utils/snackbar_utils.dart';
+// removed unused import
 
 class AdminTab extends StatefulWidget {
   const AdminTab({super.key});
