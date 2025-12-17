@@ -130,7 +130,10 @@ class _TuitionListPageState extends State<TuitionListPage> {
                           ],
                         ),
                         onTap: () {
-                          _showDeleteConfirmationDialog(context, tuition['_id']);
+                          _showDeleteConfirmationDialog(
+                            context,
+                            tuition['_id'],
+                          );
                         },
                       ),
                     if (!isOwner)
@@ -222,14 +225,20 @@ class _TuitionListPageState extends State<TuitionListPage> {
     );
   }
 
-  void _showEditTuitionDialog(BuildContext context, Map<String, dynamic> tuition) {
+  void _showEditTuitionDialog(
+    BuildContext context,
+    Map<String, dynamic> tuition,
+  ) {
     final titleController = TextEditingController(text: tuition['title'] ?? '');
-    final descriptionController =
-        TextEditingController(text: tuition['description'] ?? '');
-    final salaryController =
-        TextEditingController(text: tuition['salary']?.toString() ?? '');
-    final classLevelController =
-        TextEditingController(text: tuition['classLevel'] ?? '');
+    final descriptionController = TextEditingController(
+      text: tuition['description'] ?? '',
+    );
+    final salaryController = TextEditingController(
+      text: tuition['salary']?.toString() ?? '',
+    );
+    final classLevelController = TextEditingController(
+      text: tuition['classLevel'] ?? '',
+    );
 
     showDialog(
       context: context,

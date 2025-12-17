@@ -30,7 +30,7 @@ class _AllTeachersPageState extends State<AllTeachersPage> {
       setState(() => _isLoading = true);
       // Fetch all teachers - you may need to adjust this based on your API
       final response = await _tuitionService.getTeachers();
-      
+
       setState(() {
         teachers = response;
         filteredTeachers = response;
@@ -39,9 +39,9 @@ class _AllTeachersPageState extends State<AllTeachersPage> {
       });
     } catch (e) {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading teachers: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error loading teachers: $e')));
     }
   }
 
@@ -52,15 +52,15 @@ class _AllTeachersPageState extends State<AllTeachersPage> {
         filteredTeachers = teachers;
       } else {
         filteredTeachers = teachers
-            .where((teacher) =>
-                (teacher['fullName'] ?? '')
-                    .toString()
-                    .toLowerCase()
-                    .contains(query.toLowerCase()) ||
-                (teacher['subjects'] ?? [])
-                    .toString()
-                    .toLowerCase()
-                    .contains(query.toLowerCase()))
+            .where(
+              (teacher) =>
+                  (teacher['fullName'] ?? '').toString().toLowerCase().contains(
+                    query.toLowerCase(),
+                  ) ||
+                  (teacher['subjects'] ?? []).toString().toLowerCase().contains(
+                    query.toLowerCase(),
+                  ),
+            )
             .toList();
       }
       _sortTeachers();
@@ -70,17 +70,23 @@ class _AllTeachersPageState extends State<AllTeachersPage> {
   void _sortTeachers() {
     switch (_sortBy) {
       case 'name':
-        filteredTeachers.sort((a, b) =>
-            (a['fullName'] ?? '').compareTo(b['fullName'] ?? ''));
+        filteredTeachers.sort(
+          (a, b) => (a['fullName'] ?? '').compareTo(b['fullName'] ?? ''),
+        );
         break;
       case 'experience':
-        filteredTeachers.sort((a, b) =>
-            (b['yearsOfExperience'] ?? 0).compareTo(a['yearsOfExperience'] ?? 0));
+        filteredTeachers.sort(
+          (a, b) => (b['yearsOfExperience'] ?? 0).compareTo(
+            a['yearsOfExperience'] ?? 0,
+          ),
+        );
         break;
       case 'rating':
       default:
-        filteredTeachers.sort((a, b) =>
-            (b['averageRating'] ?? 0).compareTo(a['averageRating'] ?? 0));
+        filteredTeachers.sort(
+          (a, b) =>
+              (b['averageRating'] ?? 0).compareTo(a['averageRating'] ?? 0),
+        );
         break;
     }
   }
@@ -88,10 +94,7 @@ class _AllTeachersPageState extends State<AllTeachersPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('All Teachers'),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('All Teachers'), elevation: 0),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Column(
@@ -117,15 +120,23 @@ class _AllTeachersPageState extends State<AllTeachersPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     children: [
-                      Text('Sort by:', style: TextStyle(color: Colors.grey[600])),
+                      Text(
+                        'Sort by:',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: SegmentedButton<String>(
                           segments: const [
-                            ButtonSegment(label: Text('Rating'), value: 'rating'),
+                            ButtonSegment(
+                              label: Text('Rating'),
+                              value: 'rating',
+                            ),
                             ButtonSegment(label: Text('Name'), value: 'name'),
                             ButtonSegment(
-                                label: Text('Experience'), value: 'experience'),
+                              label: Text('Experience'),
+                              value: 'experience',
+                            ),
                           ],
                           selected: {_sortBy},
                           onSelectionChanged: (Set<String> newSelection) {
@@ -153,8 +164,10 @@ class _AllTeachersPageState extends State<AllTeachersPage> {
                             _searchQuery.isEmpty
                                 ? 'No teachers available'
                                 : 'No teachers found',
-                            style:
-                                TextStyle(color: Colors.grey[600], fontSize: 16),
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 16,
+                            ),
                           ),
                         ],
                       ),
@@ -166,11 +179,11 @@ class _AllTeachersPageState extends State<AllTeachersPage> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        childAspectRatio: 0.75,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                      ),
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.75,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                          ),
                       itemCount: filteredTeachers.length,
                       itemBuilder: (context, index) {
                         final teacher = filteredTeachers[index];
@@ -194,9 +207,9 @@ class _AllTeachersPageState extends State<AllTeachersPage> {
       child: InkWell(
         onTap: () {
           // Navigate to teacher profile
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('View $name profile')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('View $name profile')));
         },
         child: Padding(
           padding: const EdgeInsets.all(8),
@@ -206,8 +219,9 @@ class _AllTeachersPageState extends State<AllTeachersPage> {
               // Avatar
               CircleAvatar(
                 radius: 30,
-                backgroundImage:
-                    avatar.isNotEmpty ? NetworkImage(avatar) : null,
+                backgroundImage: avatar.isNotEmpty
+                    ? NetworkImage(avatar)
+                    : null,
                 child: avatar.isEmpty ? const Icon(Icons.person) : null,
               ),
               const SizedBox(height: 8),
@@ -217,7 +231,10 @@ class _AllTeachersPageState extends State<AllTeachersPage> {
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
               ),
               // Rating
               Row(
@@ -227,7 +244,10 @@ class _AllTeachersPageState extends State<AllTeachersPage> {
                   const SizedBox(width: 4),
                   Text(
                     '$rating',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
@@ -235,10 +255,7 @@ class _AllTeachersPageState extends State<AllTeachersPage> {
               if (experience > 0)
                 Text(
                   '$experience yrs exp',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                 ),
               // Subjects
               if (subjects.isNotEmpty)
@@ -261,9 +278,9 @@ class _AllTeachersPageState extends State<AllTeachersPage> {
                   icon: const Icon(Icons.mail, size: 14),
                   label: const Text('Message', style: TextStyle(fontSize: 11)),
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Message $name')),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('Message $name')));
                   },
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 4),

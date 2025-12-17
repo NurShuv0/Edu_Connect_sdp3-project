@@ -102,9 +102,7 @@ class _TopTeachersState extends State<TopTeachers> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const AllTeachersPage(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const AllTeachersPage()),
                 );
               },
               child: const Text(

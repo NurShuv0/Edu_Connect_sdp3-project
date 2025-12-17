@@ -239,9 +239,7 @@ class AppSidebar extends StatelessWidget {
       Future.delayed(const Duration(milliseconds: 200), () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => const SettingsPage(),
-          ),
+          MaterialPageRoute(builder: (_) => const SettingsPage()),
         );
       });
     } else if (index == -5) {
@@ -250,9 +248,7 @@ class AppSidebar extends StatelessWidget {
       Future.delayed(const Duration(milliseconds: 200), () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => const HelpSupportPage(),
-          ),
+          MaterialPageRoute(builder: (_) => const HelpSupportPage()),
         );
       });
     } else if (index == -6) {
