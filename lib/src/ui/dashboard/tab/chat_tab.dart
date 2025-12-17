@@ -50,36 +50,43 @@ class _ChatTabState extends State<ChatTab> {
       itemCount: rooms.length,
       itemBuilder: (_, i) {
         final r = rooms[i];
+        
+        // Extract IDs properly
         final studentId = r["studentId"] is Map
-            ? r["studentId"]["_id"]
-            : r["studentId"];
+            ? (r["studentId"]["_id"] ?? "").toString()
+            : (r["studentId"] ?? "").toString();
         final teacherId = r["teacherId"] is Map
-            ? r["teacherId"]["_id"]
-            : r["teacherId"];
+            ? (r["teacherId"]["_id"] ?? "").toString()
+            : (r["teacherId"] ?? "").toString();
+        
         final auth = GetIt.instance<AuthService>();
-        final currentUserId = auth.user?.id;
+        final currentUserId = (auth.user?.id ?? "").toString();
 
         // Determine if current user is student or teacher
         final isStudent = currentUserId == studentId;
+        final isTeacher = currentUserId == teacherId;
 
-        // Get partner's name - try different places
+        // Get partner's name - prioritize populated user objects
         String partnerName = "Chat Partner";
 
-        // First, try to get from populated user data
-        if (isStudent && r["teacherId"] is Map) {
-          partnerName = r["teacherId"]["name"] ?? "Teacher";
-        } else if (!isStudent && r["studentId"] is Map) {
-          partnerName = r["studentId"]["name"] ?? "Student";
-        }
-        // Then try from matchId
-        else if (r["matchId"] is Map) {
-          partnerName = isStudent
-              ? (r["matchId"]["teacherName"] ?? "Teacher")
-              : (r["matchId"]["studentName"] ?? "Student");
-        }
-        // Final fallback
-        else {
-          partnerName = isStudent ? "Teacher" : "Student";
+        if (isStudent) {
+          // Student viewing chat - show teacher name
+          if (r["teacherId"] is Map && r["teacherId"]["name"] != null) {
+            partnerName = r["teacherId"]["name"];
+          } else if (r["matchId"] is Map && r["matchId"]["teacherName"] != null) {
+            partnerName = r["matchId"]["teacherName"];
+          } else {
+            partnerName = "Teacher";
+          }
+        } else if (isTeacher) {
+          // Teacher viewing chat - show student name
+          if (r["studentId"] is Map && r["studentId"]["name"] != null) {
+            partnerName = r["studentId"]["name"];
+          } else if (r["matchId"] is Map && r["matchId"]["studentName"] != null) {
+            partnerName = r["matchId"]["studentName"];
+          } else {
+            partnerName = "Student";
+          }
         }
 
         return ListTile(

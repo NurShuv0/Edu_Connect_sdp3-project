@@ -50,7 +50,28 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.partnerName ?? "Chat")),
+      appBar: AppBar(
+        elevation: 2,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.partnerName ?? "Chat",
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Text(
+              "Tap to send message",
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.white.withAlpha((0.7 * 255).round()),
+              ),
+            ),
+          ],
+        ),
+      ),
       body: Column(
         children: [
           Expanded(
@@ -62,11 +83,11 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
                     reverse: true,
                     itemBuilder: (_, i) {
                       final m = messages[messages.length - 1 - i];
-                      
+
                       // Extract sender ID - it might be a populated object or a string
                       dynamic senderId = m["senderId"];
                       String senderIdStr = "";
-                      
+
                       if (senderId is Map) {
                         // If senderId is an object (populated), get _id
                         senderIdStr = (senderId["_id"] ?? "").toString();
@@ -77,7 +98,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
                         // Fallback to sender object
                         senderIdStr = (m["sender"]?["_id"] ?? "").toString();
                       }
-                      
+
                       final currentUserId = auth.user?.id ?? "";
                       final isMe = senderIdStr == currentUserId;
 
