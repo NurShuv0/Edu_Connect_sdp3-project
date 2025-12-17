@@ -135,3 +135,8 @@ out/
 .firebase/
 .firebaserc
 
+# Ignore Android heap dumps and profiling files
+*.hprof
+android/*.hprof
+android/**/*.hprof
+
