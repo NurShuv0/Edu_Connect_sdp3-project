@@ -120,8 +120,7 @@ class _DashboardPageState extends State<DashboardPage>
                 navItem(Icons.book_rounded, 3),
 
                 // STUDENTS: My Matches button
-                if (!isAdmin)
-                  navItem(Icons.handshake_rounded, 4),
+                if (!isAdmin) navItem(Icons.handshake_rounded, 4),
 
                 // LAST TAB CHANGES BASED ON ROLE
                 navItem(

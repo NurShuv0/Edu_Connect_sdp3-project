@@ -57,10 +57,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
           children: [
             Text(
               widget.partnerName ?? "Chat",
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             Text(
               "Tap to send message",

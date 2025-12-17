@@ -50,7 +50,7 @@ class _ChatTabState extends State<ChatTab> {
       itemCount: rooms.length,
       itemBuilder: (_, i) {
         final r = rooms[i];
-        
+
         // Extract IDs properly
         final studentId = r["studentId"] is Map
             ? (r["studentId"]["_id"] ?? "").toString()
@@ -58,7 +58,7 @@ class _ChatTabState extends State<ChatTab> {
         final teacherId = r["teacherId"] is Map
             ? (r["teacherId"]["_id"] ?? "").toString()
             : (r["teacherId"] ?? "").toString();
-        
+
         final auth = GetIt.instance<AuthService>();
         final currentUserId = (auth.user?.id ?? "").toString();
 
@@ -73,7 +73,8 @@ class _ChatTabState extends State<ChatTab> {
           // Student viewing chat - show teacher name
           if (r["teacherId"] is Map && r["teacherId"]["name"] != null) {
             partnerName = r["teacherId"]["name"];
-          } else if (r["matchId"] is Map && r["matchId"]["teacherName"] != null) {
+          } else if (r["matchId"] is Map &&
+              r["matchId"]["teacherName"] != null) {
             partnerName = r["matchId"]["teacherName"];
           } else {
             partnerName = "Teacher";
@@ -82,7 +83,8 @@ class _ChatTabState extends State<ChatTab> {
           // Teacher viewing chat - show student name
           if (r["studentId"] is Map && r["studentId"]["name"] != null) {
             partnerName = r["studentId"]["name"];
-          } else if (r["matchId"] is Map && r["matchId"]["studentName"] != null) {
+          } else if (r["matchId"] is Map &&
+              r["matchId"]["studentName"] != null) {
             partnerName = r["matchId"]["studentName"];
           } else {
             partnerName = "Student";

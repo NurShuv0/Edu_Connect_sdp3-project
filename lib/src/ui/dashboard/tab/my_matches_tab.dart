@@ -33,9 +33,9 @@ class _MyMatchesTabState extends State<MyMatchesTab> {
     } catch (e) {
       print("Error loading matches: $e");
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error loading matches: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error loading matches: $e")));
       }
     }
     setState(() => loading = false);
@@ -46,15 +46,15 @@ class _MyMatchesTabState extends State<MyMatchesTab> {
     return loading
         ? const Center(child: CircularProgressIndicator())
         : matches.isEmpty
-            ? _emptyState()
-            : RefreshIndicator(
-                onRefresh: loadMatches,
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: matches.length,
-                  itemBuilder: (_, i) => _matchCard(matches[i]),
-                ),
-              );
+        ? _emptyState()
+        : RefreshIndicator(
+            onRefresh: loadMatches,
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: matches.length,
+              itemBuilder: (_, i) => _matchCard(matches[i]),
+            ),
+          );
   }
 
   Widget _matchCard(Map<String, dynamic> match) {
@@ -136,12 +136,14 @@ class _MyMatchesTabState extends State<MyMatchesTab> {
                         'Class: ${post['classLevel'] ?? ''}',
                         style: const TextStyle(fontSize: 12),
                       ),
-                      if (post['subjects'] is List && post['subjects'].isNotEmpty)
+                      if (post['subjects'] is List &&
+                          post['subjects'].isNotEmpty)
                         Text(
                           'Subjects: ${(post['subjects'] as List).join(", ")}',
                           style: const TextStyle(fontSize: 12),
                         ),
-                      if (post['salaryMin'] != null && post['salaryMax'] != null)
+                      if (post['salaryMin'] != null &&
+                          post['salaryMax'] != null)
                         Text(
                           'Salary: ${post['salaryMin']} - ${post['salaryMax']} BDT',
                           style: const TextStyle(fontSize: 12),
@@ -249,13 +251,15 @@ class _MyMatchesTabState extends State<MyMatchesTab> {
                 if (mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Review submitted successfully!')),
+                    const SnackBar(
+                      content: Text('Review submitted successfully!'),
+                    ),
                   );
                 }
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error: $e')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('Error: $e')));
               }
             },
             child: const Text('Submit'),
@@ -334,7 +338,9 @@ class _MyMatchesTabState extends State<MyMatchesTab> {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Demo session booked! Teacher will confirm soon.'),
+                  content: Text(
+                    'Demo session booked! Teacher will confirm soon.',
+                  ),
                 ),
               );
             },
@@ -350,11 +356,7 @@ class _MyMatchesTabState extends State<MyMatchesTab> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.school_outlined,
-            size: 64,
-            color: Colors.grey.shade400,
-          ),
+          Icon(Icons.school_outlined, size: 64, color: Colors.grey.shade400),
           const SizedBox(height: 16),
           Text(
             'No Active Matches Yet',
@@ -367,10 +369,7 @@ class _MyMatchesTabState extends State<MyMatchesTab> {
           const SizedBox(height: 8),
           Text(
             'Find and apply for tuitions to get started',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade500,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
           ),
         ],
       ),
