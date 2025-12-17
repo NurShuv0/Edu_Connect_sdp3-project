@@ -137,6 +137,19 @@ class TuitionService {
   }
 
   /// -----------------------------------------------------------
+  /// STUDENT: REJECT APPLICATION
+  /// POST /tuition/applications/reject/:appId
+  /// Body: { reason?: string }
+  /// -----------------------------------------------------------
+  Future<Map<String, dynamic>> rejectApplication(String appId, {String? reason}) async {
+    final body = <String, dynamic>{};
+    if (reason != null && reason.isNotEmpty) {
+      body['reason'] = reason;
+    }
+    return await api.post('/api/tuition/applications/reject/$appId', body);
+  }
+
+  /// -----------------------------------------------------------
   /// STUDENT: GET MY POSTS
   /// GET /tuition/my-posts
   /// -----------------------------------------------------------

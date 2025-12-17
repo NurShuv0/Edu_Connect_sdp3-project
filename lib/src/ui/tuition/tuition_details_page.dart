@@ -73,6 +73,60 @@ class _TuitionDetailsPageState extends State<TuitionDetailsPage> {
   }
 
   // ------------------------------------------------------------
+  // REJECT APPLICATION
+  // ------------------------------------------------------------
+  Future<void> rejectApplication(String appId) async {
+    // Show dialog to get rejection reason
+    String? reason;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Reject Application"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Do you want to reject this application?"),
+            const SizedBox(height: 12),
+            TextField(
+              onChanged: (val) => reason = val,
+              decoration: InputDecoration(
+                hintText: "Reason (optional)",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text("Reject"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => loading = true);
+    try {
+      await tuitionService.rejectApplication(appId, reason: reason);
+      showSnackBar(context, "Application rejected");
+      await loadApplications();
+    } catch (e) {
+      showSnackBar(context, "Reject failed: $e", isError: true);
+    }
+    setState(() => loading = false);
+  }
+
+  // ------------------------------------------------------------
   // Teacher apply button
   // ------------------------------------------------------------
   Future<void> apply() async {
@@ -189,13 +243,28 @@ class _TuitionDetailsPageState extends State<TuitionDetailsPage> {
         subtitle: Text(
           "Applied on: ${app["createdAt"]?.toString().split("T")[0]}",
         ),
-        trailing: ElevatedButton(
-          onPressed: () => acceptApplication(app["_id"]),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            foregroundColor: Colors.white,
-          ),
-          child: const Text("Accept"),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          spacing: 8,
+          children: [
+            ElevatedButton.icon(
+              onPressed: () => acceptApplication(app["_id"]),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+              icon: const Icon(Icons.check, size: 16),
+              label: const Text("Accept"),
+            ),
+            OutlinedButton.icon(
+              onPressed: () => rejectApplication(app["_id"]),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+              icon: const Icon(Icons.close, size: 16),
+              label: const Text("Reject"),
+            ),
+          ],
         ),
       ),
     );
