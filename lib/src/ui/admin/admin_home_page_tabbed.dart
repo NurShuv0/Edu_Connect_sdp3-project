@@ -1689,7 +1689,7 @@ class _AdminHomePageTabbedState extends State<AdminHomePageTabbed>
                       style: const TextStyle(fontSize: 12),
                     ),
                     Text(
-                      "Subject: ${tuition['subject'] ?? 'N/A'}",
+                      "Subject: ${_getSubjectsDisplay(tuition['subjects'])}",
                       style: const TextStyle(fontSize: 12),
                     ),
                     Text(
@@ -2191,5 +2191,14 @@ class _AdminHomePageTabbedState extends State<AdminHomePageTabbed>
         ),
       ),
     );
+  }
+
+  String _getSubjectsDisplay(dynamic subjects) {
+    if (subjects == null) return 'N/A';
+    if (subjects is List) {
+      if (subjects.isEmpty) return 'N/A';
+      return subjects.join(', ');
+    }
+    return subjects.toString();
   }
 }
