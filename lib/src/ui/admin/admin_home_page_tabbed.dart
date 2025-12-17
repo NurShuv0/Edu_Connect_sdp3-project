@@ -4,6 +4,8 @@ import 'package:test_app/src/core/services/admin_service.dart';
 import 'package:test_app/src/core/services/auth_service.dart';
 import 'package:test_app/src/core/utils/snackbar_utils.dart';
 import 'package:test_app/src/ui/notifications/notification_badge.dart';
+import 'package:test_app/src/ui/settings/settings_page.dart';
+import 'package:test_app/src/ui/help/help_support_page.dart';
 
 class AdminHomePageTabbed extends StatefulWidget {
   const AdminHomePageTabbed({super.key});
@@ -32,6 +34,15 @@ class _AdminHomePageTabbedState extends State<AdminHomePageTabbed>
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
+
+    // Refresh data when Approvals tab (index 4) is opened
+    _tabController.addListener(() {
+      if (_tabController.index == 4 && !loading) {
+        print("Approvals tab opened - refreshing applications");
+        loadData();
+      }
+    });
+
     loadData();
   }
 
@@ -85,6 +96,12 @@ class _AdminHomePageTabbedState extends State<AdminHomePageTabbed>
 
     try {
       applications = await admin.getApplicationsPending();
+      print("Applications loaded: ${applications.length} pending applications");
+      for (var app in applications) {
+        print(
+          "  - App ${app['_id']}: Teacher ${app['teacherId']?['name']} applied to ${app['postId']?['title']}",
+        );
+      }
     } catch (e) {
       print("Error fetching pending applications: $e");
       applications = [];
@@ -226,9 +243,15 @@ class _AdminHomePageTabbedState extends State<AdminHomePageTabbed>
               loadData();
               showSnackBar(context, 'Dashboard refreshed');
             } else if (value == 'settings') {
-              showSnackBar(context, 'Settings coming soon');
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsPage()),
+              );
             } else if (value == 'help') {
-              showSnackBar(context, 'Help coming soon');
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HelpSupportPage()),
+              );
             } else if (value == 'about') {
               _showAboutDialog();
             } else if (value == 'logout') {
@@ -937,7 +960,19 @@ class _AdminHomePageTabbedState extends State<AdminHomePageTabbed>
               ),
               const SizedBox(height: 12),
               _applicationsApprovalsCard(),
-            ],
+            ] else if (teachers.isEmpty && tuitions.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  border: Border.all(color: Colors.orange.shade200),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'No pending applications yet. Teachers will need to apply to approved tuitions.',
+                  style: TextStyle(color: Colors.orange.shade900),
+                ),
+              ),
 
             if (teachers.isEmpty && tuitions.isEmpty && applications.isEmpty)
               Container(
@@ -1689,7 +1724,7 @@ class _AdminHomePageTabbedState extends State<AdminHomePageTabbed>
                       style: const TextStyle(fontSize: 12),
                     ),
                     Text(
-                      "Subject: ${tuition['subject'] ?? 'N/A'}",
+                      "Subject: ${_getSubjectsDisplay(tuition['subjects'])}",
                       style: const TextStyle(fontSize: 12),
                     ),
                     Text(
@@ -2191,5 +2226,14 @@ class _AdminHomePageTabbedState extends State<AdminHomePageTabbed>
         ),
       ),
     );
+  }
+
+  String _getSubjectsDisplay(dynamic subjects) {
+    if (subjects == null) return 'N/A';
+    if (subjects is List) {
+      if (subjects.isEmpty) return 'N/A';
+      return subjects.join(', ');
+    }
+    return subjects.toString();
   }
 }

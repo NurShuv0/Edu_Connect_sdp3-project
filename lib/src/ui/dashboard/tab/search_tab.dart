@@ -98,8 +98,18 @@ class _SearchTabState extends State<SearchTab> {
           city: cityC.text.isNotEmpty ? cityC.text : null,
         );
       } else {
-        // Use regular search
-        results = await searchService.searchTeachers();
+        // Use regular search with filters
+        results = await searchService.searchTeachers(
+          subject: subjectC.text.isNotEmpty ? subjectC.text : null,
+          classLevel: classLevelC.text.isNotEmpty ? classLevelC.text : null,
+          city: cityC.text.isNotEmpty ? cityC.text : null,
+          minSalary: salaryMinC.text.isNotEmpty
+              ? int.tryParse(salaryMinC.text)
+              : null,
+          maxSalary: salaryMaxC.text.isNotEmpty
+              ? int.tryParse(salaryMaxC.text)
+              : null,
+        );
       }
     } catch (e) {
       ScaffoldMessenger.of(

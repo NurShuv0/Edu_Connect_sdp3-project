@@ -279,6 +279,8 @@ exports.getMyApplications = async (req, res) => {
 /* --------------------------------------------------
    STUDENT — GET ALL APPLICATIONS FOR A TUITION POST
    GET /api/tuition-posts/:postId/applications
+   Students see only admin-approved applications
+   Admins see all applications for review
 -------------------------------------------------- */
 exports.getApplicationsForPost = async (req, res) => {
   try {
@@ -298,7 +300,14 @@ exports.getApplicationsForPost = async (req, res) => {
     if (!post)
       return res.status(403).json({ message: "Not authorized" });
 
-    const apps = await TuitionApplication.find({ postId })
+    // Students can only see admin-approved applications
+    // Admins can see all applications
+    const query = { postId };
+    if (req.user.role !== "admin") {
+      query.status = "admin_approved";
+    }
+
+    const apps = await TuitionApplication.find(query)
       .populate("teacherId", "name email")
       .sort({ createdAt: -1 });
 
@@ -321,32 +330,49 @@ exports.getApplicationsForPost = async (req, res) => {
 /* --------------------------------------------------
    STUDENT — ACCEPT APPLICATION
    POST /api/tuition-posts/accept/:appId
+   Student can only accept admin-approved applications
 -------------------------------------------------- */
 exports.acceptApplication = async (req, res) => {
   try {
     const { appId } = req.params;
+    console.log(`[acceptApplication] Accepting app ${appId} for user ${req.user._id}`);
 
     const app = await TuitionApplication.findById(appId);
     if (!app)
       return res.status(404).json({ message: "Application not found" });
 
+    console.log(`[acceptApplication] Found app - status: ${app.status}, teacherId: ${app.teacherId}, postId: ${app.postId}`);
+
+    // Check that application is admin-approved
+    if (app.status !== "admin_approved") {
+      return res.status(400).json({ 
+        message: "Cannot accept application",
+        details: `Application is still pending admin review. Status: ${app.status}`
+      });
+    }
+
     const post = await TuitionPost.findById(app.postId);
     if (!post)
       return res.status(404).json({ message: "Post not found" });
 
+    console.log(`[acceptApplication] Found post ${post._id}, studentId: ${post.studentId}`);
+
     if (post.studentId.toString() !== req.user._id.toString())
       return res.status(403).json({ message: "Not authorized" });
 
-    app.status = "accepted";
+    app.status = "student_approved";
     await app.save();
+    console.log(`[acceptApplication] App status updated to student_approved`);
 
     await TuitionApplication.updateMany(
       { postId: post._id, _id: { $ne: appId } },
       { $set: { status: "rejected" } }
     );
+    console.log(`[acceptApplication] Other applications rejected`);
 
     post.isClosed = true;
     await post.save();
+    console.log(`[acceptApplication] Post closed`);
 
     const match = await Match.create({
       tuitionId: post._id,
@@ -355,13 +381,70 @@ exports.acceptApplication = async (req, res) => {
       status: "active"
     });
 
+    console.log(`[acceptApplication] Match created: ${match._id}`);
+
     res.json({
       message: "Application accepted",
       matchId: match._id
     });
 
   } catch (err) {
-    console.error("acceptApplication error:", err);
+    console.error("acceptApplication error:", err.message);
+    console.error("Stack:", err.stack);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+/* --------------------------------------------------
+   STUDENT — REJECT APPLICATION
+   POST /api/tuition-posts/reject/:appId
+   Student can reject individual admin-approved applications
+-------------------------------------------------- */
+exports.rejectApplication = async (req, res) => {
+  try {
+    const { appId } = req.params;
+    const { reason } = req.body;
+
+    const app = await TuitionApplication.findById(appId);
+    if (!app)
+      return res.status(404).json({ message: "Application not found" });
+
+    // Check that application is admin-approved
+    if (app.status !== "admin_approved") {
+      return res.status(400).json({ 
+        message: "Cannot reject application",
+        details: `Application cannot be rejected. Status: ${app.status}`
+      });
+    }
+
+    const post = await TuitionPost.findById(app.postId);
+    if (!post)
+      return res.status(404).json({ message: "Post not found" });
+
+    if (post.studentId.toString() !== req.user._id.toString())
+      return res.status(403).json({ message: "Not authorized" });
+
+    app.status = "student_rejected";
+    app.rejectionReason = reason || null;
+    await app.save();
+
+    // Create notification for teacher
+    const Notification = require("../models/Notification");
+    await Notification.create({
+      userId: app.teacherId,
+      title: "Application Not Selected",
+      message: `Your application for "${post.title}" was not selected. ${reason ? `Feedback: ${reason}` : ''}`,
+      type: "application_rejected_by_student",
+      relatedId: app._id,
+      isRead: false
+    });
+
+    res.json({
+      message: "Application rejected"
+    });
+
+  } catch (err) {
+    console.error("rejectApplication error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };

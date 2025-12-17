@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:test_app/src/core/services/top_teachers_service.dart';
+import 'package:test_app/src/ui/dashboard/pages/all_teachers_page.dart';
 
 class TopTeachers extends StatefulWidget {
   const TopTeachers({super.key});
@@ -99,11 +100,9 @@ class _TopTeachersState extends State<TopTeachers> {
             ),
             TextButton(
               onPressed: () {
-                // TODO: Navigate to all teachers page
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("View all teachers coming soon"),
-                  ),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AllTeachersPage()),
                 );
               },
               child: const Text(

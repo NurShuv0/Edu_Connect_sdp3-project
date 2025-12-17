@@ -3,6 +3,9 @@ import 'package:get_it/get_it.dart';
 import 'package:test_app/src/core/services/auth_service.dart';
 import 'package:test_app/src/core/widgets/app_avatar.dart';
 import 'package:test_app/src/ui/notifications/notifications_page.dart';
+import 'package:test_app/src/ui/reviews/reviews_page.dart';
+import 'package:test_app/src/ui/settings/settings_page.dart';
+import 'package:test_app/src/ui/help/help_support_page.dart';
 
 class AppSidebar extends StatelessWidget {
   final int currentIndex;
@@ -96,19 +99,28 @@ class AppSidebar extends StatelessWidget {
             _sidebarItem(
               context,
               index: 4,
-              label: 'Profile',
-              icon: Icons.person_outline_rounded,
+              label: 'My Matches',
+              icon: Icons.handshake_rounded,
               isActive: currentIndex == 4,
               onTap: () => _navigateTo(context, 4),
+            ),
+          if (!isAdmin)
+            _sidebarItem(
+              context,
+              index: 5,
+              label: 'Profile',
+              icon: Icons.person_outline_rounded,
+              isActive: currentIndex == 5,
+              onTap: () => _navigateTo(context, 5),
             )
           else
             _sidebarItem(
               context,
-              index: 4,
+              index: 5,
               label: 'Admin Panel',
               icon: Icons.admin_panel_settings_rounded,
-              isActive: currentIndex == 4,
-              onTap: () => _navigateTo(context, 4),
+              isActive: currentIndex == 5,
+              onTap: () => _navigateTo(context, 5),
             ),
 
           const Divider(indent: 20, endIndent: 20),
@@ -225,24 +237,27 @@ class AppSidebar extends StatelessWidget {
       // Reviews & Ratings
       Navigator.pop(context);
       Future.delayed(const Duration(milliseconds: 200), () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Reviews & Ratings coming soon')),
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ReviewsPage()),
         );
       });
     } else if (index == -4) {
       // Settings
       Navigator.pop(context);
       Future.delayed(const Duration(milliseconds: 200), () {
-        ScaffoldMessenger.of(
+        Navigator.push(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Settings coming soon')));
+          MaterialPageRoute(builder: (_) => const SettingsPage()),
+        );
       });
     } else if (index == -5) {
       // Help & Support
       Navigator.pop(context);
       Future.delayed(const Duration(milliseconds: 200), () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Help & Support coming soon')),
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const HelpSupportPage()),
         );
       });
     } else if (index == -6) {
