@@ -232,3 +232,79 @@ This document summarizes 5 critical bugs that were identified and fixed in the E
 4. **Notification preferences** (per user settings)
 5. **Notification history** archival
 6. **Bulk notification management** for admins
+
+---
+
+## FINAL APPLICATION WORKFLOW - COMPLETE TESTING GUIDE
+
+### **Full Test: Teacher Application -> Student Accept**
+
+#### Phase 1: Admin Setup
+- Login as admin
+- Approve test student profile (isProfileApproved: true)
+- Approve test teacher profile (isProfileApproved: true)
+
+#### Phase 2: Student Posts
+- Login as student
+- Post tuition: "Math Grade 10" (Salary: 500-1000)
+- Status: pending_admin_review
+
+#### Phase 3: Admin Approves Tuition
+- Go to Approvals tab -> Find tuition -> Click Approve
+- Status: approved
+
+#### Phase 4: Teacher Applies
+- Login as teacher
+- Go to Browse Tuitions -> Find approved tuition -> Click Apply
+- Application created with status: pending_admin_review
+
+#### Phase 5: Admin Approves Application (CRITICAL)
+- Go to Approvals tab
+- SHOULD SEE: "Tuition Applications" section
+- Console shows: "Applications loaded: X pending applications"
+- Click application -> Click "Approve"
+- Status changes to: admin_approved (NOT just "approved")
+
+#### Phase 6: Student Accepts Application
+- Login as student
+- Go to tuition details
+- SHOULD SEE: Teacher application with Accept/Reject buttons
+- Click "Accept"
+- Match created + Chat room opened
+
+---
+
+### **CRITICAL FIX (Commit f89ba81)**
+
+Problem: Admin was setting status = "approved" but student code checked for status = "admin_approved"
+
+Solution: Changed admin controller to set correct status
+
+`javascript
+// BEFORE (WRONG)
+application.status = "approved";
+
+// AFTER (CORRECT)  
+application.status = "admin_approved";
+`
+
+### **Backend Must Be Running**
+
+Start backend before testing:
+`ash
+cd backend
+npm start
+`
+
+Look for log: "Server running on port 5000"
+
+### **All Features Complete**
+
+- Reviews & Ratings with 1-5 stars
+- Settings page (notifications, language, dark mode)
+- Help & Support page (FAQ, contact, feedback)
+- All Teachers page (search, sort, browse)
+- Edit/Delete tuition functionality
+- Student reject with reason dialog
+- Auto-refresh applications when viewing Approvals tab
+- Comprehensive logging for debugging
