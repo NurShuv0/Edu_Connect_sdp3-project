@@ -123,7 +123,7 @@ const approveApplication = async (req, res) => {
     if (!application)
       return res.status(404).json({ message: "Application not found" });
 
-    application.status = "approved";
+    application.status = "admin_approved";
     await application.save();
 
     res.json({ message: "Application approved", application });
