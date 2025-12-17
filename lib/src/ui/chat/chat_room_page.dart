@@ -59,25 +59,36 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: messages.length,
+                    reverse: true,
                     itemBuilder: (_, i) {
-                      final m = messages[i];
-                      final me = m["senderId"] == auth.user?.id;
+                      final m = messages[messages.length - 1 - i];
+                      final senderIdFromMsg = m["senderId"] ?? m["sender"]?["_id"] ?? m["sender"]?.toString() ?? "";
+                      final currentUserId = auth.user?.id ?? "";
+                      final isMe = senderIdFromMsg == currentUserId;
+
+                      print("[Chat] Message: sender=$senderIdFromMsg, me=$currentUserId, isMe=$isMe");
 
                       return Align(
-                        alignment: me
+                        alignment: isMe
                             ? Alignment.centerRight
                             : Alignment.centerLeft,
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           margin: const EdgeInsets.only(bottom: 10),
+                          constraints: BoxConstraints(
+                            maxWidth: MediaQuery.of(context).size.width * 0.75,
+                          ),
                           decoration: BoxDecoration(
-                            color: me ? Colors.indigo : Colors.grey.shade300,
+                            color: isMe 
+                                ? Colors.blue.shade600
+                                : Colors.grey.shade400,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
                             m["content"] ?? m["text"] ?? "",
                             style: TextStyle(
-                              color: me ? Colors.white : Colors.black87,
+                              color: isMe ? Colors.white : Colors.black87,
+                              fontSize: 16,
                             ),
                           ),
                         ),
