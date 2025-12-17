@@ -322,10 +322,13 @@ exports.getApplicationsForPost = async (req, res) => {
 exports.acceptApplication = async (req, res) => {
   try {
     const { appId } = req.params;
+    console.log(`[acceptApplication] Accepting app ${appId} for user ${req.user._id}`);
 
     const app = await TuitionApplication.findById(appId);
     if (!app)
       return res.status(404).json({ message: "Application not found" });
+
+    console.log(`[acceptApplication] Found app - status: ${app.status}, teacherId: ${app.teacherId}, postId: ${app.postId}`);
 
     // Check that application is admin-approved
     if (app.status !== "admin_approved") {
@@ -339,19 +342,24 @@ exports.acceptApplication = async (req, res) => {
     if (!post)
       return res.status(404).json({ message: "Post not found" });
 
+    console.log(`[acceptApplication] Found post ${post._id}, studentId: ${post.studentId}`);
+
     if (post.studentId.toString() !== req.user._id.toString())
       return res.status(403).json({ message: "Not authorized" });
 
-    app.status = "accepted";
+    app.status = "student_approved";
     await app.save();
+    console.log(`[acceptApplication] App status updated to student_approved`);
 
     await TuitionApplication.updateMany(
       { postId: post._id, _id: { $ne: appId } },
       { $set: { status: "rejected" } }
     );
+    console.log(`[acceptApplication] Other applications rejected`);
 
     post.isClosed = true;
     await post.save();
+    console.log(`[acceptApplication] Post closed`);
 
     const match = await Match.create({
       tuitionId: post._id,
@@ -360,14 +368,17 @@ exports.acceptApplication = async (req, res) => {
       status: "active"
     });
 
+    console.log(`[acceptApplication] Match created: ${match._id}`);
+
     res.json({
       message: "Application accepted",
       matchId: match._id
     });
 
   } catch (err) {
-    console.error("acceptApplication error:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("acceptApplication error:", err.message);
+    console.error("Stack:", err.stack);
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
