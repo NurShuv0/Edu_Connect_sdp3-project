@@ -62,16 +62,27 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
                     reverse: true,
                     itemBuilder: (_, i) {
                       final m = messages[messages.length - 1 - i];
-                      final senderIdFromMsg =
-                          m["senderId"] ??
-                          m["sender"]?["_id"] ??
-                          m["sender"]?.toString() ??
-                          "";
+                      
+                      // Extract sender ID - it might be a populated object or a string
+                      dynamic senderId = m["senderId"];
+                      String senderIdStr = "";
+                      
+                      if (senderId is Map) {
+                        // If senderId is an object (populated), get _id
+                        senderIdStr = (senderId["_id"] ?? "").toString();
+                      } else if (senderId is String) {
+                        // If it's already a string, use it
+                        senderIdStr = senderId;
+                      } else {
+                        // Fallback to sender object
+                        senderIdStr = (m["sender"]?["_id"] ?? "").toString();
+                      }
+                      
                       final currentUserId = auth.user?.id ?? "";
-                      final isMe = senderIdFromMsg == currentUserId;
+                      final isMe = senderIdStr == currentUserId;
 
                       print(
-                        "[Chat] Message: sender=$senderIdFromMsg, me=$currentUserId, isMe=$isMe",
+                        "[Chat] Message: senderIdStr=$senderIdStr, currentUserId=$currentUserId, isMe=$isMe, raw senderId=$senderId",
                       );
 
                       return Align(
